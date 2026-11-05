@@ -9,6 +9,7 @@ import threading
 import uuid
 import zipfile
 from collections import Counter
+from pathlib import Path
 
 import fitz
 import openai
@@ -1911,26 +1912,15 @@ def main():
     st.markdown(
         """
         <style>
-        .stApp {
-            background: linear-gradient(180deg, #f1f6fd 0%, #ffffff 430px);
-            color: #0f172a;
-        }
         .block-container {
-            max-width: 1180px;
-            padding-top: 2rem;
+            max-width: 960px;
+            padding-top: 4rem;
             padding-bottom: 3rem;
         }
-        [data-testid="stSidebar"] {
-            background: #eef3fa;
-        }
         [data-testid="stMetric"] {
-            background: white;
-            border: 1px solid #dbe4f0;
-            border-radius: 14px;
-            padding: 16px;
-        }
-        h1, h2, h3 {
-            letter-spacing: -0.025em;
+            border: 1px solid currentColor;
+            border-radius: 8px;
+            padding: 1rem;
         }
         </style>
         """,
@@ -1939,7 +1929,7 @@ def main():
 
     with st.sidebar:
         st.title("🎓 AI Career Coach")
-        st.caption("Your experience. Your goals. Your next opportunity.")
+        st.caption("Choose a tool, then add your materials below.")
 
         page = st.radio(
             "Navigate",
@@ -2042,18 +2032,6 @@ def main():
 
     results = st.session_state["display_results"]
 
-    st.caption("STUDENT SUCCESS WORKSPACE")
-    st.title("Build your next career move.")
-    st.write(
-        "Personalized resume feedback, job comparison, interview practice, "
-        "and a practical plan for your professional future."
-    )
-    st.caption(
-        "AI feedback is advisory and may be wrong. Scores are estimates, "
-        "not employer decisions, actual ATS scores, or guarantees. "
-        "Do not upload sensitive identifiers or confidential information."
-    )
-
     def check_ready(
         needs_resume=True,
         needs_job=False,
@@ -2077,46 +2055,26 @@ def main():
             )
 
     if page == "Welcome":
-        st.header("Your career preparation dashboard")
-
-        left, right = st.columns(2)
-
-        with left:
-            with st.container(border=True):
-                st.subheader("01 · Strengthen your resume")
-                st.write(
-                    "Get a transparent five-category score and "
-                    "specific, truthful improvement examples."
-                )
-            with st.container(border=True):
-                st.subheader("03 · Practice your interview")
-                st.write(
-                    "Answer five relevant questions and receive "
-                    "constructive feedback one answer at a time."
-                )
-
-        with right:
-            with st.container(border=True):
-                st.subheader("02 · Evaluate a job opportunity")
-                st.write(
-                    "Compare explicit job requirements with resume "
-                    "evidence and identify areas to strengthen."
-                )
-            with st.container(border=True):
-                st.subheader("04 · Plan your next 90 days")
-                st.write(
-                    "Turn career priorities into learning activities, "
-                    "portfolio projects, and measurable milestones."
-                )
-
-        st.subheader("Get started")
+        st.title("Compare your resume with a job")
+        st.write("Find which requirements your resume supports and choose one gap to work on.")
+        with st.container(border=True):
+            st.subheader("Try the internship demo")
+            st.write("Download a fictional resume, then upload it under Your workspace in the sidebar.")
+            demo = Path(__file__).resolve().parent / "demo"
+            candidate = st.selectbox("Sample student", ["Jordan", "Riley"])
+            filename = f"{candidate}-resume.pdf"
+            st.download_button("Download sample resume", (demo / filename).read_bytes(),
+                               file_name=filename, mime="application/pdf")
+            with st.expander("Copy the sample job description"):
+                st.code((demo / "analyst-intern.txt").read_text(), language=None)
+            st.write("Paste the posting into Target job description and check the consent box. "
+                     "Choose Job Match Analyzer, then Compare resume with this job.")
+        st.subheader("Continue with your results")
         st.markdown(
-            "1. Upload a redacted, text-readable PDF or DOCX resume.\n"
-            "2. Enter your desired job title, industry, and career goals.\n"
-            "3. Paste a job description for a specific opportunity.\n"
-            "4. Choose a feature and submit a request for live AI feedback.\n"
-            "5. Use **Ask Your Career Coach** for follow-up questions.\n"
-            "6. Inspect retrieved guidance and download your reports."
+            "- **Resume Analyzer** — review five scores and revise a bullet using evidence you can verify.\n"
+            "- **Interview Coach** — practice explaining a project and review feedback on each answer.\n"
+            "- **Career Roadmap** — enter a desired job title and build a 90-day plan to close a gap.\n"
+            "- **Ask Your Career Coach** — ask a follow-up about your next application."
         )
 
         with st.expander("How the application demonstrates AI techniques"):

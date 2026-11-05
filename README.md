@@ -1,0 +1,39 @@
+# AI Career Coach classroom guide
+
+A student deciding whether to apply for an internship can use Job Match Analyzer to answer two questions. Which requirements can I already demonstrate? What should I work on next? Use one fictional student and one posting throughout the five-minute presentation so the audience can check the coach's reasoning.
+
+## Prepare before class
+
+1. Open the [hosted coach](https://ai-career-coach-8jnrwtqi7drqqdrgai2f2d.streamlit.app/) and enter the classroom access code. Allow time for the server to wake up.
+2. Download Jordan-resume.pdf from the demo folder or the updated Welcome screen. Open analyst-intern.txt and copy the entire posting. The posting goes in a text field. The PDF goes in the resume uploader.
+3. Expand the sidebar. Upload Jordan's resume and look for **Resume ready**. Enter **Campus Operations Data Analyst Intern** as the desired job title, **Higher education** as the sector, and **Build a dashboard portfolio project before internship applications** as the goal. Paste the posting under **Target job description**.
+4. Check the consent box to send the fictional inputs for AI processing. Choose **Job Match Analyzer** and click **Compare resume with this job**. Open the extracted text, check the results against the original PDF, and download the report. Keep this actual rehearsal report available in case the network stalls during class.
+
+## Five-minute presentation
+
+| Time | What to show | What to say or ask |
+| --- | --- | --- |
+| 0:00–0:35 | Jordan's resume beside the internship posting | “Jordan has class projects but little work experience. Can a dining survey project count as evidence for this analyst internship?” |
+| 0:35–1:20 | Upload the PDF, show the target posting and submit the comparison | Point to the posting's Excel requirement. Ask the audience what evidence they would accept. Explain that students can replace both inputs with their own materials. |
+| 1:20–2:30 | Open the extracted resume and the evidence comparison | Find Jordan's 480 survey responses and pivot tables. Compare that wording with the model's assessment. Then find the preferred Power BI requirement. Jordan's charts demonstrate presentation experience, but the resume gives no evidence of an interactive Power BI dashboard. Discuss the actual output if it differs. |
+| 2:30–3:35 | Expand Retrieved guidance for comparison | The app ranks local career guidance by term relevance using TF-IDF and cosine similarity. It sends selected passages alongside student inputs to the model. The posting supplies the requirements, the resume supplies evidence, and the retrieved guidance helps interpret it. Point to a source actually displayed. |
+| 3:35–4:25 | Show the estimated compatibility score and one next action | Required criteria count twice as much as preferred ones. A match earns full credit, partial evidence earns half. The model classifies evidence and Python calculates the percentage. Suggest that Jordan build a dashboard with location and time filters, test it, then add the project to the resume. |
+| 4:25–5:00 | Download the report and return to the student question | “Jordan can already explain the SQL and Excel work. The next portfolio project should give an employer something concrete to inspect.” Mention that the student can practice explaining the project in Interview Coach. |
+
+## Try a contrasting student or a follow-up
+
+Upload Riley-resume.pdf and keep the same posting. Riley briefed volunteers and maintained a spreadsheet, while Jordan explicitly used SQL joins and pivot tables. Inspect how the explanation changes. A missing detail means the document provides insufficient evidence. Check with the student before suggesting any rewrite.
+
+For a follow-up, open **Ask Your Career Coach** with Jordan's inputs and ask “Using only my campus dining project, draft one bullet for this internship and explain which requirement it supports.” Check every number and tool against the original document. In **Career Roadmap**, click **Build my 90-day career plan** and look for a project deliverable at each phase. In **Resume Analyzer**, inspect the five criteria and one suggested rewrite. In **Interview Coach**, select the job-description option and generate five questions. Answer one with a specific example and review the feedback before continuing.
+
+## Explain the implementation
+
+The comparison workflow reads the file, extracts target requirements, and asks the model to classify resume evidence for each one. Career Roadmap adds a planning stage. These are coordinated functions with a fixed sequence. Structured responses and validation make the results easier to inspect. The knowledge library is curated locally. The app does not need a separate database for the demo. Reports stay in the session unless the student downloads them. AI requests send submitted information to OpenAI.
+
+If asked about AI-assisted coding, show a specific change your group reviewed, such as the sample download or the score calculation. Describe the input you tried, what you observed, and what you would improve. Only claim tests your group actually performed.
+
+## Run or publish the update
+
+Unzip the app package. From the folder containing app.py, install requirements with `python -m pip install -r requirements.txt` and start it with `python -m streamlit run app.py`. Configure OPENAI_API_KEY and the optional DEMO_ACCESS_CODE using Streamlit secrets or environment variables. Keep credentials out of the repository.
+
+For the existing hosted app, put app.py, requirements.txt, demo, and .streamlit/config.toml in the repository root on the branch connected to Streamlit. Preserve the existing Cloud secrets. After redeployment, open the classroom URL in a fresh window and verify that Welcome offers **Download sample resume**. Then run one real comparison. If extraction fails, use the supplied text-readable PDF. If the API key or usage limit blocks analysis, show the saved rehearsal report and identify it as a previous run.

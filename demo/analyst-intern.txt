@@ -1,0 +1,12 @@
+Campus Operations Data Analyst Intern
+Fictional internship for classroom practice
+
+Help the campus operations team identify service bottlenecks and explain findings to student-services staff.
+
+Required qualifications
+- Clean spreadsheet data and summarize trends using Excel pivot tables.
+- Write SQL queries that join tables and aggregate results.
+- Present findings and a recommendation to a nontechnical audience.
+
+Preferred qualification
+- Build an interactive Power BI dashboard with filters for location and time period.
