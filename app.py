@@ -259,6 +259,16 @@ class JobAnalysis(StrictModel):
     requirements: list[Requirement]
 
 
+class SelectedRequirement(StrictModel):
+    source_id: int
+    priority: Literal["required", "preferred"]
+
+
+class SelectedJobRequirements(StrictModel):
+    summary: str
+    requirements: list[SelectedRequirement]
+
+
 class MatchItem(StrictModel):
     requirement_id: str
     status: Literal["matched", "partial", "not_evidenced"]
@@ -270,6 +280,19 @@ class MatchItem(StrictModel):
 class GapAnalysis(CitedModel):
     summary: str
     matches: list[MatchItem]
+
+
+class SelectedMatch(StrictModel):
+    requirement_id: str
+    status: Literal["matched", "partial", "not_evidenced"]
+    resume_source_id: int
+    explanation: str
+    improvement: str
+
+
+class SelectedGapAnalysis(CitedModel):
+    summary: str
+    matches: list[SelectedMatch]
 
 
 class Recommendation(StrictModel):
@@ -917,6 +940,58 @@ def analyze_target_job(job, context):
 
     passages = retrieve(context + " " + job + " occupation skills")
 
+    if job:
+        # Gemini selects source excerpts. Python copies the evidence verbatim.
+        source_excerpts = {
+            index: line.strip()
+            for index, line in enumerate(re.split(r"\n+|(?<=[.!?;])\s+", job), start=1)
+            if line.strip()
+        }
+
+        def validate_selection(result):
+            ids = [item.source_id for item in result.requirements]
+            require(
+                1 <= len(ids) <= 10
+                and len(ids) == len(set(ids))
+                and all(source_id in source_excerpts for source_id in ids),
+                "The AI selected an invalid job source. Submit again.",
+            )
+
+        selected = ask_ai(
+            task=(
+                "Select up to 10 distinct excerpts containing important job "
+                "qualifications, skills, or responsibilities. Use source_id "
+                "values from job_source_excerpts. Select substantive requirements, "
+                "skip headings and introductory text, and distinguish required "
+                "versus preferred using the full posting and section headings. "
+                "When several requirements share an excerpt, select that excerpt once. "
+                "Do not infer qualifications from career_context or retrieved "
+                "guidance. Do not rewrite or generate evidence quotes."
+            ),
+            schema=SelectedJobRequirements,
+            payload={
+                "job_source_excerpts": [
+                    {"source_id": source_id, "text": text}
+                    for source_id, text in source_excerpts.items()
+                ],
+                "career_context": context,
+            },
+            passages=passages,
+            validator=validate_selection,
+        )
+        return JobAnalysis(
+            summary=selected.summary,
+            requirements=[
+                Requirement(
+                    id=f"R{index}",
+                    description=source_excerpts[item.source_id],
+                    priority=item.priority,
+                    evidence_quote=source_excerpts[item.source_id],
+                )
+                for index, item in enumerate(selected.requirements, start=1)
+            ],
+        )
+
     def validate(result):
         ids = [item.id for item in result.requirements]
         require(
@@ -925,20 +1000,12 @@ def analyze_target_job(job, context):
         )
 
         for item in result.requirements:
-            if job:
-                require(
-                    bool(item.evidence_quote.strip())
-                    and normalized(item.evidence_quote) in normalized(job),
-                    "A requirement could not be traced to the supplied "
-                    "job description. No result was saved.",
-                )
-            else:
-                require(
-                    item.priority == "preferred"
-                    and not item.evidence_quote.strip(),
-                    "A career assumption was incorrectly presented "
-                    "as an employer requirement.",
-                )
+            require(
+                item.priority == "preferred"
+                and not item.evidence_quote.strip(),
+                "A career assumption was incorrectly presented "
+                "as an employer requirement.",
+            )
 
     return ask_ai(
         task=(
@@ -993,26 +1060,68 @@ def identify_skill_gaps(profile, target, context, job):
                     "A not-evidenced item contained inconsistent evidence.",
                 )
 
-    result = ask_ai(
+    resume_excerpts = {
+        index: text.strip()
+        for index, text in enumerate(
+            re.split(r"\n+|(?<=[.!?;])\s+", profile["text"]), start=1
+        )
+        if text.strip()
+    }
+
+    def validate_selection(result):
+        expected = {item.id for item in target.requirements}
+        returned = [item.requirement_id for item in result.matches]
+        require(
+            len(returned) == len(expected) and set(returned) == expected,
+            "The comparison did not cover each requirement exactly once.",
+        )
+        for item in result.matches:
+            require(
+                item.resume_source_id in resume_excerpts
+                if item.status in {"matched", "partial"}
+                else item.resume_source_id == 0,
+                "The AI selected an invalid resume source. Submit again.",
+            )
+
+    selected = ask_ai(
         task=(
             "Compare every requirement exactly once with the resume. "
             "matched means clear evidence; partial means relevant but "
             "incomplete evidence; not_evidenced means no supporting text. "
-            "For matched/partial, give an exact resume excerpt as "
-            "resume_evidence. For not_evidenced, use an empty resume_evidence. "
+            "For matched/partial select the resume_source_id of the most "
+            "relevant supplied resume excerpt. For not_evidenced use "
+            "resume_source_id 0. Never invent source IDs. "
             "Explain the comparison and give one practical improvement. "
             "Do not equate missing resume evidence with missing ability. "
             "Never advise falsely claiming a qualification."
         ),
-        schema=GapAnalysis,
+        schema=SelectedGapAnalysis,
         payload={
-            "resume": profile["text"],
+            "resume_excerpts": [
+                {"resume_source_id": source_id, "text": text}
+                for source_id, text in resume_excerpts.items()
+            ],
             "career_context": context,
             "target": target.model_dump(),
         },
         passages=passages,
-        validator=validate,
+        validator=validate_selection,
     )
+    result = GapAnalysis(
+        summary=selected.summary,
+        source_ids=selected.source_ids,
+        matches=[
+            MatchItem(
+                requirement_id=item.requirement_id,
+                status=item.status,
+                resume_evidence=resume_excerpts.get(item.resume_source_id, ""),
+                explanation=item.explanation,
+                improvement=item.improvement,
+            )
+            for item in selected.matches
+        ],
+    )
+    validate(result)
     return result, passages
 
 
