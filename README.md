@@ -5,7 +5,7 @@ A student deciding whether to apply for an internship can use Job Match Analyzer
 ## Prepare before class
 
 1. Open the [hosted coach](https://ai-career-coach-8jnrwtqi7drqqdrgai2f2d.streamlit.app/) and enter the classroom access code. Allow time for the server to wake up.
-2. Download Jordan-resume.pdf from the demo folder or the Welcome screen. Open analyst-intern.txt and copy the entire posting. The posting goes in a text field. The PDF goes in the resume uploader.
+2. Download Jordan-resume.pdf from the demo folder. Open analyst-intern.txt and copy the entire posting. The posting goes in a text field. The PDF goes in the resume uploader.
 3. On Welcome, click Get started to open Upload Resume. Upload Jordan's resume and look for **Resume ready**. Enter **Campus Operations Data Analyst Intern** as the desired job title, **Higher education** as the sector, and **Build a dashboard portfolio project before internship applications** as the goal. Paste the posting under **Target job description**.
 4. Check the consent box to send the fictional inputs for AI processing. Click **Continue to Resume Analyzer**, then use **Next step** to reach **Job Match Analyzer** and click **Compare resume with this job**. Open the extracted text, check the results against the original PDF, and download the report. Keep this actual rehearsal report available in case the network stalls during class.
 
@@ -49,3 +49,9 @@ Open the deployed app settings and find Secrets. Add GEMINI_API_KEY as a quoted 
 The app uses the existing Python client library with Google's documented Gemini compatibility endpoint using Gemini 3.5 Flash-Lite. Resume Analyzer sends the extracted resume, optional career context and job posting, scoring rubric, and retrieved career guidance. Gemini returns five scores with explanations, strengths, weaknesses, and proposed rewrites. Python validates the rubric, citations, and original excerpts before displaying a result. The other coaching tools use the same Gemini connection. Repeated identical requests may reuse a genuine result already generated during the session.
 
 Free-tier availability and quotas depend on the Google project. Wait and check Google AI Studio if the app reports a quota limit. The dollar estimates shown by the app use paid-tier reference rates for internal guards. They do not verify whether the project is eligible for free usage. Use fictional or redacted documents because free-tier inputs and outputs may be used to improve Google products.
+
+## Welcome information and supported files
+
+Welcome explains the LLM, RAG retrieval, the fixed career workflow, evidence checks, privacy and consent, responsible feedback, supported files, and cost controls. The internship demo files remain in the repository demo folder for classroom preparation.
+
+Upload Resume accepts PDF, Word DOC, and Word DOCX files up to 5 MB. DOCX uses python-docx, PDF uses PyMuPDF, and older DOC files use antiword. Streamlit Community Cloud installs antiword from packages.txt. For a local installation, install antiword through the operating system package manager. On macOS, the built-in textutil reader is used when antiword is unavailable. DOC extraction uses a temporary directory, a 15-second conversion timeout, file signature checks, and the shared extracted-text limits. Conversion failures display guidance to export as PDF or DOCX.

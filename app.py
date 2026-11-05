@@ -5,6 +5,9 @@ import json
 import math
 import os
 import re
+import shutil
+import subprocess
+import tempfile
 import threading
 import uuid
 import zipfile
@@ -484,8 +487,8 @@ def extract_resume(uploaded):
     extension = uploaded.name.rsplit(".", 1)[-1].lower()
 
     require(
-        extension in {"pdf", "docx"},
-        "Upload a PDF or DOCX resume.",
+        extension in {"pdf", "doc", "docx"},
+        "Upload a PDF or Word resume (.doc or .docx).",
     )
     require(
         0 < len(raw) <= MAX_FILE_BYTES,
@@ -516,6 +519,41 @@ def extract_resume(uploaded):
                     page.get_text("text", sort=True)
                     for page in document
                 )
+        elif extension == "doc":
+            require(
+                raw.startswith(bytes.fromhex("d0cf11e0a1b11ae1")),
+                "This file does not appear to be a valid Word DOC file. "
+                "Export it as DOCX or PDF and upload again.",
+            )
+            reader = shutil.which("antiword")
+            mac_reader = shutil.which("textutil") if not reader else None
+            require(
+                bool(reader or mac_reader),
+                "Word DOC support is still installing. Try again after the "
+                "app restarts, or save your document as DOCX or PDF.",
+            )
+            # Isolated temporary files are removed after extraction.
+            with tempfile.TemporaryDirectory(prefix="career-resume-") as folder:
+                source = Path(folder) / "resume.doc"
+                source.write_bytes(raw)
+                command = (
+                    [reader, "-m", "UTF-8.txt", "-w", "0", str(source)]
+                    if reader
+                    else [mac_reader, "-convert", "txt", "-encoding", "UTF-8",
+                          "-stdout", str(source)]
+                )
+                converted = subprocess.run(
+                    command,
+                    capture_output=True,
+                    timeout=15,
+                    check=False,
+                )
+                require(
+                    converted.returncode == 0,
+                    "The DOC could not be read. Remove password protection "
+                    "or export it as DOCX or PDF.",
+                )
+                text = converted.stdout.decode("utf-8", errors="replace")
         else:
             require(
                 zipfile.is_zipfile(io.BytesIO(raw)),
@@ -560,7 +598,7 @@ def extract_resume(uploaded):
     except Exception:
         raise CoachError(
             "The document could not be read. Try exporting a new "
-            "text-based PDF or DOCX."
+            "text-based PDF or Word DOCX."
         ) from None
 
     text = text.replace("\x00", "").strip()
@@ -2074,8 +2112,8 @@ def main():
         )
 
         uploaded = st.file_uploader(
-            "Resume — PDF or DOCX, up to 5 MB",
-            type=["pdf", "docx"],
+            "Resume — PDF or Word (.doc, .docx), up to 5 MB",
+            type=["pdf", "doc", "docx"],
             key=f"resume_upload_{st.session_state['upload_epoch']}",
         )
 
@@ -2208,7 +2246,7 @@ def main():
         )
         st.subheader("How to use the coach")
         st.markdown(
-            "1. **Upload Resume** — add a readable PDF or DOCX, your career goals, "
+            "1. **Upload Resume** — add a readable PDF or Word file (.doc or .docx), your career goals, "
             "and an optional job description. Review the extracted text and provide consent.\n"
             "2. **Resume Analyzer** — review feedback and improve the evidence in your resume.\n"
             "3. **Job Match Analyzer** — compare that evidence with a target job's requirements.\n"
@@ -2220,72 +2258,161 @@ def main():
                  "Your uploaded resume and career details carry across the tools during this session.")
         st.button("Get started · Upload Resume", type="primary",
                   on_click=navigate, args=("Upload Resume",))
-        with st.container(border=True):
-            st.subheader("Try the internship demo")
-            st.write("Download a fictional resume, then upload it on Upload Resume.")
-            demo = Path(__file__).resolve().parent / "demo"
-            candidate = st.selectbox("Sample student", ["Jordan", "Riley"])
-            filename = f"{candidate}-resume.pdf"
-            st.download_button("Download sample resume", (demo / filename).read_bytes(),
-                               file_name=filename, mime="application/pdf")
-            with st.expander("Copy the sample job description"):
-                st.code((demo / "analyst-intern.txt").read_text(), language=None)
-            st.write("Paste the posting into Target job description and check the consent box. "
-                     "Continue to Resume Analyzer, or choose Job Match Analyzer in Navigate.")
-        with st.expander("How the application demonstrates AI techniques"):
-            st.markdown(
-                "**RAG:** local TF-IDF retrieval selects relevant curated "
-                "source summaries before generation. Sources are displayed "
-                "separately and citations use an allowlist.\n\n"
-                "**Agent-like workflow:** separate functions read the resume, "
-                "analyze the target, compare evidence, and generate a plan.\n\n"
-                "**Generative AI:** actual Google Gemini requests generate feedback, "
-                "questions, explanations, and personalized recommendations.\n\n"
-                "**AI-assisted coding:** the project code was developed with "
-                "AI assistance. The student team should document its own "
-                "review, testing, and revisions."
+        st.subheader("How our system works")
+        st.write(
+            "You upload a resume and enter career goals or a target job. "
+            "The app extracts the document text so you can check it before "
+            "analysis. When you submit a request, it combines those inputs "
+            "with relevant career guidance and sends them to Gemini."
+        )
+
+        with st.expander("LLM and personalized feedback", expanded=True):
+            st.write(
+                "A large language model, or LLM, generates language from the "
+                "context supplied in a request. We use Gemini 3.5 Flash-Lite "
+                "to explain resume strengths and weaknesses, assess job "
+                "evidence, write interview questions, give answer feedback, "
+                "and propose career actions."
+            )
+            st.write(
+                "Resume Analyzer asks Gemini to score Organization, Clarity, "
+                "Impact, Relevance, and Skills from 0 to 20 each. The app "
+                "validates the categories and score ranges, then adds the "
+                "five scores to produce a total out of 100."
             )
 
-        with st.expander("Privacy, limitations, and online availability"):
+        with st.expander("RAG and the career guidance library"):
             st.write(
-                "Documents and results are held in this Streamlit session, "
-                "not a document database or shared response cache. The app "
-                "does not intentionally log resumes or prompts. Google Gemini "
-                "receives submitted text. Free-tier inputs and outputs may be used "
-                "to improve Google products. "
-                "Clearing the workspace does not erase provider-side records."
+                "Retrieval-augmented generation, or RAG, brings relevant "
+                "reference material into the model's request. Our app uses a "
+                "local library of curated career guidance and learning "
+                "resource summaries. TF-IDF weights words by how distinctive "
+                "they are across the library. Cosine similarity ranks passages "
+                "against your request, and the app selects relevant passages "
+                "to include with your resume and career context."
             )
             st.write(
-                "Scanned PDFs need external OCR. PDF reading order may be "
-                "imperfect. DOCX headers, footers, and text boxes may be "
-                "omitted. Inspect extracted text before analysis."
-            )
-            st.write(
-                "This is not live web search, an official ATS, or a complete "
-                "certification database. Resource summaries are locally "
-                "authored; verify current official details."
-            )
-            st.write(
-                "Normal navigation preserves session state. Browser reloads, "
-                "disconnections, or server restarts may reset it. "
-                "Community Cloud can sleep when inactive and does not "
-                "guarantee uninterrupted demonstration availability."
+                "The result's Retrieved guidance section lets you inspect "
+                "the selected sources. The app checks citation IDs against "
+                "the supplied sources. Resource summaries reflect the local "
+                "library, so check official pages for current details."
             )
 
-        with st.expander("Cost controls"):
+        with st.expander("Workflow and evidence checks"):
             st.write(
-                "The app uses Gemini 3.5 Flash-Lite, bounded inputs and outputs, "
-                "session-local caching, and no automatic API retries. "
-                "AI calls occur only on explicit submission."
+                "The career workflow follows a fixed sequence of specialized "
+                "steps. It reads the resume, identifies target requirements, "
+                "compares resume evidence, and builds a 90-day development "
+                "plan when requested. Each step passes structured results "
+                "to the next."
             )
             st.write(
-                "Estimated guards: $0.30 per session, 60 submitted requests "
-                "per session, and $8.00 per running app process. These are "
-                "not actual billing caps or your account balance. "
-                "The shared guard resets on server restart. "
-                "Dollar amounts use paid-tier reference estimates. Free-tier eligibility and quotas are set by Google. "
-                "Protect public demos with an access code and monitor "
-                "Google AI Studio usage and quota."
+                "For job matching, Gemini selects numbered excerpts from "
+                "the job posting and resume. The app copies the selected "
+                "text directly into the report and rejects invalid source "
+                "IDs. It also checks that every requirement is compared once. "
+                "These checks help you trace the feedback back to your inputs. "
+                "Review whether each excerpt actually supports the model's "
+                "interpretation."
+            )
+            st.write(
+                "The compatibility percentage uses required requirements "
+                "with weight 2 and preferred requirements with weight 1. "
+                "Matched evidence earns full credit, partial evidence half, "
+                "and missing evidence zero. Python calculates the weighted "
+                "percentage from Gemini's classifications."
+            )
+
+        st.subheader("Our policies")
+        with st.expander("Privacy and consent"):
+            st.write(
+                "Use fictional or redacted resumes and remove sensitive "
+                "identifiers before upload. Uploading extracts text locally "
+                "on the app server. AI processing starts after you provide "
+                "consent on Upload Resume and submit a feature request."
+            )
+            st.write(
+                "Google receives the submitted career text, relevant recent "
+                "conversation context, and retrieved guidance for that request. "
+                "Google's free-tier inputs and outputs may be used to improve "
+                "its products. Review Google's data terms before using personal "
+                "documents."
+            )
+            st.write(
+                "Career inputs and reports are kept in the current app "
+                "session. The app uses temporary files for older Word DOC "
+                "extraction and removes them after conversion. Use Clear my "
+                "information and reports on Upload Resume to remove session "
+                "inputs and reports. Google may retain provider-side records "
+                "under its own policies."
+            )
+
+        with st.expander("Truthful feedback and responsible use"):
+            st.write(
+                "Our prompts instruct Gemini to preserve your facts, use "
+                "placeholders for missing details, and exclude names, contact "
+                "details, and protected personal characteristics from scoring. "
+                "Missing resume evidence means the document needs more support. "
+                "Check every suggested claim before adding it to an application."
+            )
+            st.write(
+                "Scores and recommendations are educational estimates. "
+                "Hiring decisions belong to employers. Verify AI suggestions "
+                "and seek a campus career advisor's help for important decisions."
+            )
+
+        with st.expander("Supported files and service limits"):
+            st.write(
+                "Upload PDF, Word DOC, or Word DOCX files up to 5 MB. PDFs "
+                "can contain 1–15 pages. Extracted resume text is limited to "
+                "14,000 characters. Text-based files work best. Scanned pages "
+                "need OCR before upload, and document reading order or content "
+                "in headers and text boxes may require manual checking."
+            )
+            st.write(
+                "Check the extracted text on Upload Resume before proceeding. "
+                "Session data may reset after a reload, disconnection, or "
+                "server restart. Download important reports. The hosted app "
+                "can sleep when inactive and depends on Google's service availability."
+            )
+
+        st.subheader("Cost controls")
+        with st.expander("When requests use the API", expanded=True):
+            st.write(
+                "AI calls run when you submit a feature request. Reading "
+                "instructions and moving between pages use the saved session "
+                "data. Repeating an identical request can reuse a genuine "
+                "earlier result from the same session. Calls are sent without "
+                "automatic retries so you control when to try again."
+            )
+            st.write(
+                "One button can run several AI stages. Job Match Analyzer "
+                "can make two calls, and Career Roadmap can make three. "
+                "Interview questions and each answer review also use requests. "
+                "The AI usage section in the sidebar shows submitted calls "
+                "and reported token usage."
+            )
+        with st.expander("Request limits and estimated budget"):
+            st.write(
+                "The app allows up to 60 submitted AI requests per session. "
+                "Each request has an estimated input limit of 12,000 tokens "
+                "and an output limit of 2,600 tokens. A token is a small "
+                "piece of text used to measure model input and output."
+            )
+            st.write(
+                "Before a call, the app reserves a reference cost. It "
+                "reconciles the estimate with usage returned by Google. "
+                "Internal guards are $0.30 per session and $8 per running "
+                "app process. The process guard resets when the server restarts. "
+                "These estimates use paid-tier reference rates and serve as "
+                "application safeguards. Google controls actual charges and quota."
+            )
+            st.write(
+                "Free-tier access depends on the Google project, model, and "
+                "available quota. Check Google AI Studio for current usage "
+                "and limits. If a quota message appears, wait before submitting "
+                "again. The app's estimate cannot confirm your free-tier status "
+                "or enforce an account-wide billing cap."
             )
 
     elif page == "Resume Analyzer":
