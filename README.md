@@ -28,16 +28,24 @@ For a follow-up, open **Ask Your Career Coach** with Jordan's inputs and ask “
 
 ## Explain the implementation
 
-The comparison workflow reads the file, extracts target requirements, and asks the model to classify resume evidence for each one. Career Roadmap adds a planning stage. These are coordinated functions with a fixed sequence. Structured responses and validation make the results easier to inspect. The knowledge library is curated locally. The app does not need a separate database for the demo. Reports stay in the session unless the student downloads them. AI requests send submitted information to OpenAI.
+The comparison workflow reads the file, extracts target requirements, and asks the model to classify resume evidence for each one. Career Roadmap adds a planning stage. These are coordinated functions with a fixed sequence. Structured responses and validation make the results easier to inspect. The knowledge library is curated locally. The app does not need a separate database for the demo. Reports stay in the session unless the student downloads them. AI requests send submitted information to Google Gemini.
 
 If asked about AI-assisted coding, show a specific change your group reviewed, such as the sample download or the score calculation. Describe the input you tried, what you observed, and what you would improve. Only claim tests your group actually performed.
 
 ## Run or publish the update
 
-Unzip the app package. From the folder containing app.py, install requirements with `python -m pip install -r requirements.txt` and start it with `python -m streamlit run app.py`. Configure OPENAI_API_KEY and the optional DEMO_ACCESS_CODE using Streamlit secrets or environment variables. Keep credentials out of the repository.
+Unzip the app package. From the folder containing app.py, install requirements with `python -m pip install -r requirements.txt` and start it with `python -m streamlit run app.py`. Configure GEMINI_API_KEY and the optional DEMO_ACCESS_CODE using Streamlit secrets or environment variables. Keep credentials out of the repository.
 
 For the existing hosted app, put app.py, requirements.txt, demo, and .streamlit/config.toml in the repository root on the branch connected to Streamlit. Preserve the existing Cloud secrets. After redeployment, open the classroom URL in a fresh window and verify that Welcome offers **Download sample resume**. Then run one real comparison. If extraction fails, use the supplied text-readable PDF. If the API key or usage limit blocks analysis, show the saved rehearsal report and identify it as a previous run.
 
 ## Move through the coach
 
 Welcome explains the app and each tool. Get started opens Upload Resume, which contains the resume upload, career details, target job description, and consent checkbox. Once a readable resume is ready and consent is checked, Continue to Resume Analyzer opens the first tool. Next step buttons lead through Job Match Analyzer, Interview Coach, Career Roadmap, and Ask Your Career Coach. Navigate lets you open any page directly. Edit resume and career details returns to Upload Resume. Your extracted resume and details stay available across the tools during this session. Uploading another resume replaces the saved text. Clear my information and reports removes the saved inputs and reports.
+
+## Connect Gemini in Streamlit
+
+Open the deployed app settings and find Secrets. Add GEMINI_API_KEY as a quoted string containing your Google AI Studio API key. Save the secret and allow the app to restart. Keep the key in Streamlit secrets or a server environment variable. Never add it to app.py, README.md, or a GitHub commit. Project name and project number are unnecessary for this API-key connection.
+
+The app uses the existing Python client library with Google's documented Gemini compatibility endpoint using Gemini 3.5 Flash-Lite. Resume Analyzer sends the extracted resume, optional career context and job posting, scoring rubric, and retrieved career guidance. Gemini returns five scores with explanations, strengths, weaknesses, and proposed rewrites. Python validates the rubric, citations, and original excerpts before displaying a result. The other coaching tools use the same Gemini connection. Repeated identical requests may reuse a genuine result already generated during the session.
+
+Free-tier availability and quotas depend on the Google project. Wait and check Google AI Studio if the app reports a quota limit. The dollar estimates shown by the app use paid-tier reference rates for internal guards. They do not verify whether the project is eligible for free usage. Use fictional or redacted documents because free-tier inputs and outputs may be used to improve Google products.

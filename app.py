@@ -33,7 +33,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-MODEL = "gpt-4o-mini"
+MODEL = "gemini-3.5-flash-lite"
 
 MAX_FILE_BYTES = 5 * 1024 * 1024
 MAX_RESUME_CHARS = 14_000
@@ -42,8 +42,8 @@ MAX_INPUT_TOKENS = 12_000
 MAX_OUTPUT_TOKENS = 2_600
 
 # Reference estimates. Verify current pricing before deployment.
-INPUT_PRICE_PER_MILLION = 0.15
-OUTPUT_PRICE_PER_MILLION = 0.60
+INPUT_PRICE_PER_MILLION = 0.30
+OUTPUT_PRICE_PER_MILLION = 2.50
 
 # These are estimated application guards, not actual billing limits.
 PROCESS_BUDGET = 8.00
@@ -431,7 +431,7 @@ class Budget:
                 raise CoachError(
                     "The application's estimated demonstration budget "
                     "has been reached. The owner should check actual "
-                    "OpenAI billing before continuing."
+                    "Google Gemini billing before continuing."
                 )
             self.estimated_usd += amount
 
@@ -448,7 +448,8 @@ def shared_budget():
 
 @st.cache_resource
 def tokenizer():
-    return tiktoken.encoding_for_model(MODEL)
+    # Local size estimate only. Gemini reports actual usage after generation.
+    return tiktoken.get_encoding("cl100k_base")
 
 
 # =====================================================================
@@ -634,7 +635,7 @@ def retrieve(query, top_k=4):
 
 
 # =====================================================================
-# LIVE OPENAI INTEGRATION
+# LIVE GEMINI INTEGRATION
 # =====================================================================
 
 SYSTEM_PROMPT = """
@@ -689,10 +690,10 @@ def ask_ai(task, schema, payload, passages, validator=None):
     if cache_key in memo:
         return schema.model_validate(memo[cache_key])
 
-    key = setting("OPENAI_API_KEY")
+    key = setting("GEMINI_API_KEY")
     require(
         bool(key),
-        "OpenAI is not connected. Add OPENAI_API_KEY to Streamlit "
+        "Google Gemini is not connected. Add GEMINI_API_KEY to Streamlit "
         "secrets or the server's environment variables.",
     )
 
@@ -758,6 +759,7 @@ def ask_ai(task, schema, payload, passages, validator=None):
     try:
         with openai.OpenAI(
             api_key=str(key),
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
             timeout=60.0,
             max_retries=0,
         ) as client:
@@ -767,6 +769,7 @@ def ask_ai(task, schema, payload, passages, validator=None):
                 response_format=schema,
                 temperature=0.2,
                 max_tokens=MAX_OUTPUT_TOKENS,
+                reasoning_effort="low",
             )
 
         if completion.usage:
@@ -809,21 +812,14 @@ def ask_ai(task, schema, payload, passages, validator=None):
         raise
     except openai.AuthenticationError:
         raise CoachError(
-            "OpenAI rejected the API key. The app owner must update "
+            "Google Gemini rejected the API key. The app owner must update "
             "the server-side secret."
         ) from None
-    except openai.RateLimitError as error:
-        if getattr(error, "code", "") in {
-            "insufficient_quota",
-            "billing_hard_limit_reached",
-        }:
-            raise CoachError(
-                "OpenAI credit or billing quota is exhausted. Check API "
-                "billing. A ChatGPT subscription does not include API credit."
-            ) from None
+    except openai.RateLimitError:
         raise CoachError(
-            "OpenAI reported a rate or quota limit. Check API credits "
-            "and wait before trying again. No automatic retry was made."
+            "Gemini's rate or quota limit was reached. Wait before trying "
+            "again and check your Google AI Studio quota. Free-tier limits "
+            "are shared across requests in the project."
         ) from None
     except (openai.APITimeoutError, openai.APIConnectionError):
         raise CoachError(
@@ -837,8 +833,8 @@ def ask_ai(task, schema, payload, passages, validator=None):
         ) from None
     except openai.APIStatusError:
         raise CoachError(
-            "OpenAI could not complete the request. Check model access, "
-            "service status, and API billing."
+            "Google Gemini could not complete the request. Check model access, "
+            "service status, and your Gemini API key."
         ) from None
     except Exception:
         raise CoachError(
@@ -1960,11 +1956,11 @@ def main():
         st.write("Upload your resume and add your career goals to begin.")
         st.caption(
             "Use a redacted resume. Submitted career information "
-            "is sent to OpenAI only when you request AI processing."
+            "is sent to Google Gemini only when you request AI processing."
         )
 
         consent = st.checkbox(
-            "I agree to send my submitted career information to OpenAI.",
+            "I agree to send my submitted career information to Google Gemini.",
             key="consent",
         )
 
@@ -2134,7 +2130,7 @@ def main():
                 "separately and citations use an allowlist.\n\n"
                 "**Agent-like workflow:** separate functions read the resume, "
                 "analyze the target, compare evidence, and generate a plan.\n\n"
-                "**Generative AI:** actual OpenAI requests generate feedback, "
+                "**Generative AI:** actual Google Gemini requests generate feedback, "
                 "questions, explanations, and personalized recommendations.\n\n"
                 "**AI-assisted coding:** the project code was developed with "
                 "AI assistance. The student team should document its own "
@@ -2145,8 +2141,9 @@ def main():
             st.write(
                 "Documents and results are held in this Streamlit session, "
                 "not a document database or shared response cache. The app "
-                "does not intentionally log resumes or prompts. OpenAI "
-                "receives submitted text and applies its own data policies. "
+                "does not intentionally log resumes or prompts. Google Gemini "
+                "receives submitted text. Free-tier inputs and outputs may be used "
+                "to improve Google products. "
                 "Clearing the workspace does not erase provider-side records."
             )
             st.write(
@@ -2168,7 +2165,7 @@ def main():
 
         with st.expander("Cost controls"):
             st.write(
-                "The app uses gpt-4o-mini, bounded inputs and outputs, "
+                "The app uses Gemini 3.5 Flash-Lite, bounded inputs and outputs, "
                 "session-local caching, and no automatic API retries. "
                 "AI calls occur only on explicit submission."
             )
@@ -2176,14 +2173,16 @@ def main():
                 "Estimated guards: $0.30 per session, 60 submitted requests "
                 "per session, and $8.00 per running app process. These are "
                 "not actual billing caps or your account balance. "
-                "The shared guard resets on server restart. Reference "
-                "prices must be checked against current OpenAI pricing. "
+                "The shared guard resets on server restart. "
+                "Dollar amounts use paid-tier reference estimates. Free-tier eligibility and quotas are set by Google. "
                 "Protect public demos with an access code and monitor "
-                "the actual OpenAI billing dashboard."
+                "Google AI Studio usage and quota."
             )
 
     elif page == "Resume Analyzer":
         st.header("AI Resume Analyzer")
+        st.write("Gemini reviews your uploaded resume and generates scores, explanations, "
+                 "strengths, and specific suggestions using your career goals and target job.")
 
         with st.expander("Scoring rubric — five categories, 20 points each"):
             for name, description in RUBRIC.items():
@@ -2314,7 +2313,7 @@ def main():
         st.caption(
             "Identical requests can reuse genuine earlier AI results "
             "from this session. These estimates are not your actual "
-            "OpenAI credit balance."
+            "Google AI Studio quota or billing balance."
         )
 
     st.divider()
