@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 import threading
 import uuid
 import zipfile
@@ -37,6 +38,7 @@ st.set_page_config(
 )
 
 MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODEL = "gemini-3.1-flash-lite"
 
 MAX_FILE_BYTES = 5 * 1024 * 1024
 MAX_RESUME_CHARS = 14_000
@@ -737,9 +739,35 @@ You do not browse current vacancies, contact employers, or submit applications.
 """
 
 
+class TemporaryAIError(CoachError):
+    pass
+
+
 def ask_ai(task, schema, payload, passages, validator=None):
+    notice = st.empty()
+    try:
+        for attempt in range(2):
+            try:
+                return ask_ai_once(
+                    task, schema, payload, passages, validator,
+                    model=MODEL if attempt == 0 else FALLBACK_MODEL,
+                )
+            except TemporaryAIError:
+                if attempt == 1:
+                    raise CoachError(
+                        "Gemini is temporarily unavailable after two attempts. "
+                        "Your resume and career details are saved. Wait a moment "
+                        "and press the same action button again without reloading."
+                    ) from None
+                notice.info("Gemini is temporarily busy. Trying the backup Gemini model…")
+                time.sleep(1)
+    finally:
+        notice.empty()
+
+
+def ask_ai_once(task, schema, payload, passages, validator=None, model=MODEL):
     cache_key = fingerprint({
-        "model": MODEL,
+        "model": model,
         "system": SYSTEM_PROMPT,
         "task": task,
         "schema": schema.model_json_schema(),
@@ -825,7 +853,7 @@ def ask_ai(task, schema, payload, passages, validator=None):
             max_retries=0,
         ) as client:
             completion = client.beta.chat.completions.parse(
-                model=MODEL,
+                model=model,
                 messages=messages,
                 response_format=schema,
                 temperature=0.2,
@@ -872,30 +900,43 @@ def ask_ai(task, schema, payload, passages, validator=None):
     except CoachError:
         raise
     except openai.AuthenticationError:
+        actual = 0.0
         raise CoachError(
             "Google Gemini rejected the API key. The app owner must update "
             "the server-side secret."
         ) from None
     except openai.RateLimitError:
+        actual = 0.0
         raise CoachError(
             "Gemini's rate or quota limit was reached. Wait before trying "
             "again and check your Google AI Studio quota. Free-tier limits "
             "are shared across requests in the project."
         ) from None
     except (openai.APITimeoutError, openai.APIConnectionError):
-        raise CoachError(
-            "The AI service could not be reached. Your inputs remain "
-            "available. Please try again later."
-        ) from None
+        raise TemporaryAIError("Gemini connection interrupted.") from None
     except openai.LengthFinishReasonError:
         raise CoachError(
             "The response reached its output limit. No partial result "
             "was saved. Shorten the input and explicitly submit again."
         ) from None
-    except openai.APIStatusError:
+    except openai.APIStatusError as error:
+        if error.status_code >= 500 or error.status_code == 408:
+            raise TemporaryAIError("Gemini service interrupted.") from None
+        actual = 0.0
+        if error.status_code in {401, 403}:
+            raise CoachError(
+                "Google rejected access to Gemini. Check GEMINI_API_KEY "
+                "and its API restrictions in the app's Streamlit secrets."
+            ) from None
+        if error.status_code == 404:
+            raise CoachError(
+                "The configured Gemini model is unavailable for this project. "
+                "The app owner needs to check the model configuration."
+            ) from None
         raise CoachError(
-            "Google Gemini could not complete the request. Check model access, "
-            "service status, and your Gemini API key."
+            f"Gemini rejected this request (HTTP {error.status_code}). "
+            "Your information is saved. Try a shorter resume or job description. "
+            "If it continues, share this status code with the app owner."
         ) from None
     except Exception:
         raise CoachError(
@@ -2383,7 +2424,10 @@ def main():
                 "instructions and moving between pages use the saved session "
                 "data. Repeating an identical request can reuse a genuine "
                 "earlier result from the same session. Calls are sent without "
-                "automatic retries so you control when to try again."
+                "more than one automatic retry. Temporary connection or service "
+                "failures get one attempt with Gemini 3.1 Flash-Lite as a backup "
+                "while your inputs stay saved. Key, "
+                "quota, and invalid-input errors require your action."
             )
             st.write(
                 "One button can run several AI stages. Job Match Analyzer "
