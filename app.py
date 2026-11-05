@@ -1661,7 +1661,7 @@ def interview_page(resume, context, job, job_title, consent):
 
     if not consent:
         st.info(
-            "Provide consent in the sidebar before starting or "
+            "Provide consent on Upload Resume before starting or "
             "continuing AI interview practice."
         )
         return
@@ -1683,7 +1683,7 @@ def interview_page(resume, context, job, job_title, consent):
                 if not use_job:
                     require(
                         bool(job_title),
-                        "Enter a desired job title in the sidebar.",
+                        "Enter a desired job title on Upload Resume.",
                     )
                 return start_interview(resume, context, job, use_job)
 
@@ -1851,7 +1851,7 @@ def career_coaching_page(resume, context, job, consent):
 
     if not consent:
         st.warning(
-            "Provide consent in the sidebar before submitting a question."
+            "Provide consent on Upload Resume before submitting a question."
         )
         return
 
@@ -1909,6 +1909,15 @@ def main():
     initialize_session()
     access_gate()
 
+    # Keep uploaded career details when Streamlit removes widgets on other pages.
+    for key in ("consent", "job_title", "industry_sector",
+                "career_goals_detail", "job_description"):
+        if key in st.session_state:
+            st.session_state[key] = st.session_state[key]
+
+    def navigate(destination):
+        st.session_state["page"] = destination
+
     st.markdown(
         """
         <style>
@@ -1929,22 +1938,26 @@ def main():
 
     with st.sidebar:
         st.title("🎓 AI Career Coach")
-        st.caption("Choose a tool, then add your materials below.")
+        st.caption("Start on Welcome to learn how to use the coach.")
 
         page = st.radio(
             "Navigate",
             [
                 "Welcome",
+                "Upload Resume",
                 "Resume Analyzer",
                 "Job Match Analyzer",
                 "Interview Coach",
                 "Career Roadmap",
                 "Ask Your Career Coach",
             ],
+            key="page",
         )
 
-        st.divider()
-        st.subheader("Your workspace")
+
+    if page == "Upload Resume":
+        st.title("Upload your resume")
+        st.write("Upload your resume and add your career goals to begin.")
         st.caption(
             "Use a redacted resume. Submitted career information "
             "is sent to OpenAI only when you request AI processing."
@@ -1994,8 +2007,26 @@ def main():
             key="job_description",
         ).strip()
 
-        if st.button("Clear my workspace and private session reports"):
+        if uploaded:
+            extracted = execute(lambda: extract_resume(uploaded))
+            st.session_state["resume_text"] = extracted or ""
+        elif st.session_state.get("resume_text"):
+            st.info("Your resume is saved for this session. Upload another file to replace it.")
+
+        if st.button("Clear my information and reports"):
             clear_workspace()
+
+    consent = st.session_state.get("consent", False)
+    job_title = st.session_state.get("job_title", "").strip()
+    industry = st.session_state.get("industry_sector", "").strip()
+    career_goals = st.session_state.get("career_goals_detail", "").strip()
+    job = st.session_state.get("job_description", "").strip()
+    resume = st.session_state.get("resume_text", "")
+
+    if page == "Upload Resume" and resume:
+        st.success(f"Resume ready · {len(resume.split()):,} words")
+        with st.expander("Check your extracted resume"):
+            st.text(resume)
 
     context = "\n".join(
         f"{label}: {value}"
@@ -2006,15 +2037,6 @@ def main():
         ]
         if value
     )
-
-    resume = ""
-    if uploaded:
-        extracted = execute(lambda: extract_resume(uploaded))
-        if extracted:
-            resume = extracted
-            st.sidebar.success(
-                f"Resume ready · {len(resume.split()):,} words"
-            )
 
     workspace_id = fingerprint({
         "resume": resume,
@@ -2039,27 +2061,63 @@ def main():
     ):
         require(
             consent,
-            "Provide consent in the sidebar before using AI.",
+            "Provide consent on Upload Resume before using AI.",
         )
         if needs_resume:
             require(bool(resume), "Upload a readable resume first.")
         if needs_job:
             require(
                 bool(job),
-                "Paste a job description in the sidebar.",
+                "Paste a job description on Upload Resume.",
             )
         if needs_title:
             require(
                 bool(job_title),
-                "Enter your desired job title in the sidebar.",
+                "Enter your desired job title on Upload Resume.",
             )
 
-    if page == "Welcome":
-        st.title("Compare your resume with a job")
-        st.write("Find which requirements your resume supports and choose one gap to work on.")
+    if page not in {"Welcome", "Upload Resume"}:
+        st.button("Edit resume and career details", on_click=navigate, args=("Upload Resume",))
+        if resume:
+            st.caption(f"Using your saved resume · {len(resume.split()):,} words")
+        else:
+            st.info("Start on Upload Resume to upload your resume and add your career details.")
+
+    if page == "Upload Resume":
+        st.button(
+            "Continue to Resume Analyzer",
+            type="primary",
+            disabled=not (resume and consent),
+            on_click=navigate,
+            args=("Resume Analyzer",),
+        )
+        if not (resume and consent):
+            st.caption("Upload a readable resume and check the consent box to continue.")
+
+    elif page == "Welcome":
+        st.title("Your AI Career Coach")
+        st.write(
+            "Turn your college projects and experience into a clearer career plan. "
+            "Get resume feedback, compare a job posting, practice interviews, "
+            "and choose skills to develop."
+        )
+        st.subheader("How to use the coach")
+        st.markdown(
+            "1. **Upload Resume** — add a readable PDF or DOCX, your career goals, "
+            "and an optional job description. Review the extracted text and provide consent.\n"
+            "2. **Resume Analyzer** — review feedback and improve the evidence in your resume.\n"
+            "3. **Job Match Analyzer** — compare that evidence with a target job's requirements.\n"
+            "4. **Interview Coach** — practice questions and review feedback on your answers.\n"
+            "5. **Career Roadmap** — build a 90-day plan around your target role.\n"
+            "6. **Ask Your Career Coach** — ask follow-up questions about your next move."
+        )
+        st.write("Use the next-step buttons to continue, or choose any tool under Navigate. "
+                 "Your uploaded resume and career details carry across the tools during this session.")
+        st.button("Get started · Upload Resume", type="primary",
+                  on_click=navigate, args=("Upload Resume",))
         with st.container(border=True):
             st.subheader("Try the internship demo")
-            st.write("Download a fictional resume, then upload it under Your workspace in the sidebar.")
+            st.write("Download a fictional resume, then upload it on Upload Resume.")
             demo = Path(__file__).resolve().parent / "demo"
             candidate = st.selectbox("Sample student", ["Jordan", "Riley"])
             filename = f"{candidate}-resume.pdf"
@@ -2068,15 +2126,7 @@ def main():
             with st.expander("Copy the sample job description"):
                 st.code((demo / "analyst-intern.txt").read_text(), language=None)
             st.write("Paste the posting into Target job description and check the consent box. "
-                     "Choose Job Match Analyzer, then Compare resume with this job.")
-        st.subheader("Continue with your results")
-        st.markdown(
-            "- **Resume Analyzer** — review five scores and revise a bullet using evidence you can verify.\n"
-            "- **Interview Coach** — practice explaining a project and review feedback on each answer.\n"
-            "- **Career Roadmap** — enter a desired job title and build a 90-day plan to close a gap.\n"
-            "- **Ask Your Career Coach** — ask a follow-up about your next application."
-        )
-
+                     "Continue to Resume Analyzer, or choose Job Match Analyzer in Navigate.")
         with st.expander("How the application demonstrates AI techniques"):
             st.markdown(
                 "**RAG:** local TF-IDF retrieval selects relevant curated "
@@ -2237,6 +2287,17 @@ def main():
         career_coaching_page(
             resume, context, job, consent
         )
+
+    next_steps = {
+        "Resume Analyzer": "Job Match Analyzer",
+        "Job Match Analyzer": "Interview Coach",
+        "Interview Coach": "Career Roadmap",
+        "Career Roadmap": "Ask Your Career Coach",
+    }
+    if page in next_steps:
+        st.divider()
+        destination = next_steps[page]
+        st.button(f"Next step · {destination}", on_click=navigate, args=(destination,))
 
     with st.sidebar:
         st.divider()

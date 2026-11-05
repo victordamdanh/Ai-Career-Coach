@@ -5,9 +5,9 @@ A student deciding whether to apply for an internship can use Job Match Analyzer
 ## Prepare before class
 
 1. Open the [hosted coach](https://ai-career-coach-8jnrwtqi7drqqdrgai2f2d.streamlit.app/) and enter the classroom access code. Allow time for the server to wake up.
-2. Download Jordan-resume.pdf from the demo folder or the updated Welcome screen. Open analyst-intern.txt and copy the entire posting. The posting goes in a text field. The PDF goes in the resume uploader.
-3. Expand the sidebar. Upload Jordan's resume and look for **Resume ready**. Enter **Campus Operations Data Analyst Intern** as the desired job title, **Higher education** as the sector, and **Build a dashboard portfolio project before internship applications** as the goal. Paste the posting under **Target job description**.
-4. Check the consent box to send the fictional inputs for AI processing. Choose **Job Match Analyzer** and click **Compare resume with this job**. Open the extracted text, check the results against the original PDF, and download the report. Keep this actual rehearsal report available in case the network stalls during class.
+2. Download Jordan-resume.pdf from the demo folder or the Welcome screen. Open analyst-intern.txt and copy the entire posting. The posting goes in a text field. The PDF goes in the resume uploader.
+3. On Welcome, click Get started to open Upload Resume. Upload Jordan's resume and look for **Resume ready**. Enter **Campus Operations Data Analyst Intern** as the desired job title, **Higher education** as the sector, and **Build a dashboard portfolio project before internship applications** as the goal. Paste the posting under **Target job description**.
+4. Check the consent box to send the fictional inputs for AI processing. Click **Continue to Resume Analyzer**, then use **Next step** to reach **Job Match Analyzer** and click **Compare resume with this job**. Open the extracted text, check the results against the original PDF, and download the report. Keep this actual rehearsal report available in case the network stalls during class.
 
 ## Five-minute presentation
 
@@ -37,3 +37,7 @@ If asked about AI-assisted coding, show a specific change your group reviewed, s
 Unzip the app package. From the folder containing app.py, install requirements with `python -m pip install -r requirements.txt` and start it with `python -m streamlit run app.py`. Configure OPENAI_API_KEY and the optional DEMO_ACCESS_CODE using Streamlit secrets or environment variables. Keep credentials out of the repository.
 
 For the existing hosted app, put app.py, requirements.txt, demo, and .streamlit/config.toml in the repository root on the branch connected to Streamlit. Preserve the existing Cloud secrets. After redeployment, open the classroom URL in a fresh window and verify that Welcome offers **Download sample resume**. Then run one real comparison. If extraction fails, use the supplied text-readable PDF. If the API key or usage limit blocks analysis, show the saved rehearsal report and identify it as a previous run.
+
+## Move through the coach
+
+Welcome explains the app and each tool. Get started opens Upload Resume, which contains the resume upload, career details, target job description, and consent checkbox. Once a readable resume is ready and consent is checked, Continue to Resume Analyzer opens the first tool. Next step buttons lead through Job Match Analyzer, Interview Coach, Career Roadmap, and Ask Your Career Coach. Navigate lets you open any page directly. Edit resume and career details returns to Upload Resume. Your extracted resume and details stay available across the tools during this session. Uploading another resume replaces the saved text. Clear my information and reports removes the saved inputs and reports.
