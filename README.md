@@ -59,3 +59,7 @@ Upload Resume accepts PDF, Word DOC, and Word DOCX files up to 5 MB. DOCX uses p
 ## Recovery from temporary AI failures
 
 For a temporary connection failure, timeout, HTTP 408, or server error, the app makes one backup attempt using Gemini 3.1 Flash-Lite. The primary model is Gemini 3.5 Flash-Lite. Cost estimates use the higher primary-model reference rates for both attempts. Each attempt passes the existing request and budget guards. Authentication, quota, invalid-input, and model-access errors stop with a specific message. Uploaded information remains in the session, so use the same feature button to try again without reloading. Rejected HTTP requests release their reserved cost estimate. Failed calls with unknown usage retain a conservative reservation.
+
+## Resume matched roles and company applications
+
+In Job Match Analyzer, choose Find jobs matching my resume after uploading a resume and providing consent. Gemini suggests up to three student-appropriate roles, each linked to an actual resume excerpt. Each suggestion opens Amazon or Google careers searches for that role. Students choose a current opening, review its requirements, and apply on the employer website. The company application library also links to Microsoft and Amazon student programs. Role suggestions are generated from the resume. Current vacancies and applications are handled by the employer websites. This action uses a separate AI request and the existing recovery and budget controls.

@@ -14,6 +14,7 @@ import uuid
 import zipfile
 from collections import Counter
 from pathlib import Path
+from urllib.parse import urlencode
 
 import fitz
 import openai
@@ -337,6 +338,16 @@ class AnswerFeedback(CitedModel):
     strengths: list[str]
     improvements: list[str]
     sample_answer: str
+
+
+class SuggestedRole(StrictModel):
+    title: str
+    reason: str
+    resume_source_id: int
+
+
+class SuggestedRoles(StrictModel):
+    roles: list[SuggestedRole]
 
 
 class CareerReply(CitedModel):
@@ -1107,6 +1118,69 @@ def analyze_target_job(job, context):
         passages=passages,
         validator=validate,
     )
+
+
+def suggest_job_roles(resume, context):
+    excerpts = {
+        index: text.strip()
+        for index, text in enumerate(resume.splitlines(), start=1)
+        if text.strip()
+    }
+
+    def validate(result):
+        titles = [normalized(role.title) for role in result.roles]
+        require(
+            1 <= len(titles) <= 3 and len(titles) == len(set(titles)),
+            "The AI returned an invalid role list. Try again.",
+        )
+        for role in result.roles:
+            require(
+                2 <= len(role.title.strip()) <= 100
+                and bool(role.reason.strip())
+                and role.resume_source_id in excerpts,
+                "A suggested role could not be linked to resume evidence. Try again.",
+            )
+
+    result = ask_ai(
+        task=(
+            "Suggest 1 to 3 realistic internship or entry-level job titles "
+            "based on this student's demonstrated resume skills and projects. "
+            "Use short job titles suitable for an employer's job search. "
+            "For each, explain the connection to their actual experience and "
+            "select one resume_source_id that supports it. Respect stated "
+            "career goals but prioritize evidence. Exclude names, contact "
+            "details, and protected personal traits from your assessment. "
+            "Recommend role types without claiming current vacancies or "
+            "employer-specific eligibility. Do not generate companies or URLs."
+        ),
+        schema=SuggestedRoles,
+        payload={
+            "resume_excerpts": [
+                {"resume_source_id": index, "text": text}
+                for index, text in excerpts.items()
+            ],
+            "career_context": context,
+        },
+        passages=[],
+        validator=validate,
+    )
+    return [
+        {
+            "title": role.title.strip(),
+            "reason": role.reason,
+            "evidence": excerpts[role.resume_source_id],
+        }
+        for role in result.roles
+    ]
+
+
+def employer_job_links(title):
+    return {
+        "Amazon": "https://www.amazon.jobs/en/search?"
+        + urlencode({"base_query": title}),
+        "Google": "https://www.google.com/about/careers/applications/jobs/results/?"
+        + urlencode({"q": title}),
+    }
 
 
 def identify_skill_gaps(profile, target, context, job):
@@ -2526,6 +2600,58 @@ def main():
 
         if "job" in results:
             display_workflow(results["job"], include_plan=False)
+
+        st.divider()
+        st.subheader("Find roles matching your resume")
+        st.write(
+            "Get up to three role suggestions backed by your resume, then "
+            "open the company's careers website to find openings and apply."
+        )
+        if st.button("Find jobs matching my resume", type="primary"):
+            def find_roles():
+                check_ready()
+                return suggest_job_roles(resume, context)
+
+            with st.spinner("Matching your resume skills to possible roles…"):
+                suggested = execute(find_roles)
+            if suggested:
+                results["suggested_roles"] = suggested
+
+        if "suggested_roles" in results:
+            st.caption(
+                "Links open employer searches for the suggested role. "
+                "Choose a current posting there to review requirements and apply."
+            )
+            for role in results["suggested_roles"]:
+                with st.container(border=True):
+                    st.subheader(role["title"])
+                    st.write(role["reason"])
+                    st.caption("Supporting experience from your resume")
+                    st.text(role["evidence"])
+                    columns = st.columns(2)
+                    for column, (company, url) in zip(
+                        columns, employer_job_links(role["title"]).items()
+                    ):
+                        column.link_button(f"View roles at {company}", url)
+
+        with st.expander("Company application library"):
+            st.write(
+                "Explore student and graduate opportunities on these "
+                "official company careers websites."
+            )
+            st.link_button(
+                "Microsoft student and early career opportunities",
+                "https://careers.microsoft.com/v2/global/en/students",
+            )
+            st.link_button(
+                "Amazon student and graduate opportunities",
+                "https://www.amazon.jobs/content/en/career-programs/university",
+            )
+            st.write(
+                "To compare a specific opening with your resume, copy the "
+                "posting into Target job description on Upload Resume, "
+                "then return here and choose Compare resume with this job."
+            )
 
     elif page == "Interview Coach":
         interview_page(
