@@ -1,9 +1,10 @@
-import { createClassroomRequest } from "./request.mjs?v=e6cefbb70266";
+import { createClassroomRequest } from "./request.mjs?v=664c2d22e487";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=e6cefbb70266";
-import { attachCareerSteps } from "./career-steps.mjs?v=e6cefbb70266";
-import { attachChat } from "./chat.mjs?v=e6cefbb70266";
-import { attachInbox } from "./inbox.mjs?v=e6cefbb70266";
+import { browserModel, createAgent } from "./agent.mjs?v=664c2d22e487";
+import { attachCareerSteps } from "./career-steps.mjs?v=664c2d22e487";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=664c2d22e487";
+import { attachChat } from "./chat.mjs?v=664c2d22e487";
+import { attachInbox } from "./inbox.mjs?v=664c2d22e487";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -21,6 +22,7 @@ const pages = new Map([...document.querySelectorAll("[data-page]")].map(page => 
 const aliases = { "report-title": "match", "search-title": "jobs", "interviews": "interview", "method": "match" };
 const navigation = $("page-nav");
 let currentPage;
+let lastCompanyQuery;
 
 function renderPage({ scroll = false } = {}) {
   const hash = window.location.hash.slice(1);
@@ -35,6 +37,10 @@ function renderPage({ scroll = false } = {}) {
   }
   if (changed && currentPage === "interview") stopInterview();
   currentPage = next;
+  if (changed && next === "jobs" && (resume.value.trim().length >= 20 || $("role").value.trim()) &&
+    companyQueryKey() !== lastCompanyQuery) {
+    searchResumeCompanies(false);
+  }
   const heading = pages.get(next).querySelector("h1");
   document.title = next === "upload" ? "AI Career Match" : heading.textContent + " | AI Career Match";
   if (hash === "features") {
@@ -117,24 +123,144 @@ $("search").addEventListener("submit", async event => {
     const result = await request("listings?" + params);
     const shown = result.jobs.length;
     status("search-status", shown ? "Showing " + shown + " of " + result.total + " listings from " + result.company + "." : "No matching listings. Try another keyword.");
-    for (const listing of result.jobs) {
-      const item = el("details");
-      const summary = el("summary", listing.title);
-      summary.append(el("small", listing.location));
-      const actions = el("div", "", "buttons");
-      const compare = el("button", "Compare to my resume");
-      compare.type = "button";
-      compare.addEventListener("click", () => chooseListing(listing));
-      actions.append(compare, officialLink(listing.url, "Official posting and application"));
-      item.append(summary, el("p", listing.description, "list-description"), actions);
-      $("listings").append(item);
-    }
+    $("listings").replaceChildren(...result.jobs.map(listingCard));
   } catch (error) {
     status("search-status", error.message, true);
   } finally {
     button.disabled = false;
   }
 });
+
+function listingCard(listing) {
+  const item = el("details", "", "job-listing");
+  const summary = el("summary", listing.title);
+  summary.append(el("small", listing.location));
+  const description = el("p", listing.description, "list-description");
+  const actions = el("div", "", "buttons");
+  const compare = el("button", "Compare to my resume");
+  compare.type = "button";
+  let pending;
+  async function loadDescription() {
+    if (listing.description) return listing;
+    if (!pending) {
+      description.textContent = "Loading the official job description…";
+      const params = new URLSearchParams({ company: listing.companyId, id: listing.id });
+      pending = request("listing?" + params).then(details => {
+        listing = details;
+        description.textContent = details.description;
+        return details;
+      }).catch(error => {
+        description.textContent = error.message;
+        pending = undefined;
+        throw error;
+      });
+    }
+    return pending;
+  }
+  item.addEventListener("toggle", () => {
+    if (item.open) loadDescription().catch(() => {});
+  });
+  compare.addEventListener("click", async () => {
+    compare.disabled = true;
+    try {
+      const details = await loadDescription();
+      if (currentPage === "jobs") chooseListing(details);
+    } catch { /* The job card displays the retrieval error and official link. */ }
+    finally { compare.disabled = false; }
+  });
+  actions.append(compare, officialLink(listing.url, "Official posting and application"));
+  item.append(summary, description, actions);
+  return item;
+}
+
+function companyQueryKey() {
+  return JSON.stringify([resume.value, $("role").value, $("place").value, $("level").value]);
+}
+
+const resumeJobs = $("find-resume-jobs");
+const refineJobs = $("ai-job-search");
+async function searchResumeCompanies(refine) {
+  if (resumeJobs.disabled) return;
+  const text = resume.value.trim();
+  const title = $("role").value.trim();
+  if (text.length < 20 && !title) {
+    status("matched-jobs-status", "Upload a resume or enter a desired job title in Preferences.", true);
+    return;
+  }
+  lastCompanyQuery = companyQueryKey();
+  resumeJobs.disabled = refineJobs.disabled = true;
+  $("matched-companies").replaceChildren();
+  const profile = resumeProfile(text);
+  let inferred = [];
+  let aiWorked = false;
+  try {
+    if (refine && text.length >= 20) {
+      try {
+        status("matched-jobs-status", "Finding job titles that fit the resume…");
+        const generate = await browserModel(progress =>
+          status("matched-jobs-status", "Loading the model (" + progress + "%)…"), { fast: true });
+        const raw = await generate(
+          "You identify plausible job titles from a resume. Use the given experience and don't invent qualifications. Output JSON only.",
+          'Return {"roles":["short common job title"]} with up to five distinct job titles. Use common job search wording.',
+          { resume: resumeExcerpt(text, title, 1600), desiredRole: title },
+          { maxTokens: 200 },
+        );
+        const result = JSON.parse(raw);
+        if (Array.isArray(result.roles)) {
+          inferred = result.roles.filter(role => typeof role === "string" && role.length <= 65 &&
+            /^[A-Za-z0-9][A-Za-z0-9 /&+-]+$/.test(role)).slice(0, 5);
+          aiWorked = inferred.length > 0;
+        }
+      } catch { /* Resume skill matches are still available without the model. */ }
+    }
+    const roles = [...new Set([title, ...inferred, ...profile.roles].filter(Boolean))].slice(0, 16);
+    if (!roles.length) {
+      status("matched-jobs-status", "Add a job title in Preferences or use Refine with AI to suggest roles from your resume.", true);
+      return;
+    }
+    status("matched-jobs-status", "Checking connected company career boards…");
+    const params = new URLSearchParams({ place: $("place").value.trim(), level: $("level").value });
+    roles.forEach(role => params.append("role", role));
+    const resultKey = lastCompanyQuery;
+    const { matches, checked, unavailable } = await request("recommend?" + params);
+    if (resultKey !== companyQueryKey()) {
+      status("matched-jobs-status", "Your resume or preferences changed. Search again to update the results.");
+      return;
+    }
+    const label = aiWorked ? "AI-suggested and resume-based job titles" : "resume skills and job preferences";
+    const lines = [matches.length + " matching " + (matches.length === 1 ? "company" : "companies") + " across " + checked.length + " checked boards. Search used " + label + "."];
+    if (!matches.length && checked.length) lines.push("Try broadening the title, location, or experience level.");
+    if (unavailable.length) lines.push("Couldn’t check " + unavailable.join(", ") + ".");
+    status("matched-jobs-status", lines.join(" "), !checked.length);
+    const cards = matches.map(group => {
+      const item = el("details", "", "company-match");
+      const summary = el("summary", group.company);
+      summary.append(el("small", group.total + " matching " + (group.total === 1 ? "opening" : "openings")));
+      item.append(summary, ...group.jobs.map(listingCard));
+      if (group.total > group.jobs.length) item.append(el("p", "Showing the top " + group.jobs.length + " title matches.", "hint"));
+      return item;
+    });
+    if (cards.length) cards[0].open = true;
+    $("matched-companies").replaceChildren(...cards);
+  } catch (error) {
+    status("matched-jobs-status", error.message, true);
+  } finally {
+    resumeJobs.disabled = refineJobs.disabled = false;
+  }
+}
+
+resumeJobs.addEventListener("click", () => searchResumeCompanies(false));
+refineJobs.addEventListener("click", () => searchResumeCompanies(true));
+request("companies").then(companies => {
+  const field = $("company");
+  const previous = field.value;
+  field.replaceChildren(...Object.entries(companies).sort((a, b) => a[1].localeCompare(b[1])).map(([id, name]) => {
+    const option = el("option", name);
+    option.value = id;
+    return option;
+  }));
+  if (Object.hasOwn(companies, previous)) field.value = previous;
+}).catch(() => {});
 
 function chooseListing(listing) {
   if (busy) return;
@@ -229,7 +355,7 @@ $("compare").addEventListener("submit", event => {
     status("status", "Preparing the on-device language model…");
     generator = await browserModel(progress => status("status", "Downloading the model (" + progress + "%)…"));
     const agent = createAgent(generator, rows => request("score", json("POST", rows)));
-    render(await agent(resumeText, jobText, (_stage, detail) => status("status", detail)), sample()?.note);
+    render(await agent(resumeExcerpt(resumeText, jobText, 2850), jobText, (_stage, detail) => status("status", detail)), sample()?.note);
   });
 });
 
@@ -326,14 +452,14 @@ loadAccount().catch(error => status("account-status", error.message, true));
 
 function syncResumePreview() {
   $("extracted").value = resume.value;
-  $("extraction").hidden = !resume.value;
   $("review-resume-note").textContent = resume.value.trim().length >= 20 ? "Your resume is ready to review." : "Upload a resume or use the sample to get started.";
   $("resume-analysis").replaceChildren();
+  $("review-ai-result").replaceChildren();
   status("review-status");
 }
 
 function setResume(text) {
-  resume.value = text;
+  resume.value = text.slice(0, resumeLimit);
   resume.dispatchEvent(new Event("input"));
 }
 

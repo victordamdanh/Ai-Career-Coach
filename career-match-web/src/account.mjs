@@ -6,7 +6,7 @@ async function accountInput(request) {
   if (!request.headers.get("content-type")?.startsWith("application/json")) throw new Error("Expected JSON.");
   if (Number(request.headers.get("content-length")) > 64_000) throw new Error("The record is too long.");
   const input = await request.text();
-  if (input.length > 16_000) throw new Error("The record is too long.");
+  if (input.length > 40_000) throw new Error("The record is too long.");
   const value = JSON.parse(input);
   if (!value || typeof value !== "object") throw new Error("Invalid record.");
   return value;
@@ -49,7 +49,7 @@ export async function account(request, env = {}) {
       const name = field(input.name, 100);
       const email = field(input.email, 254);
       const phone = field(input.phone, 40);
-      const resume = field(input.resume, 3000, true);
+      const resume = field(input.resume, 14_000, true);
       await DB.prepare(`INSERT INTO candidate_profiles (owner, name, email, phone, resume) VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(owner) DO UPDATE SET name=excluded.name, email=excluded.email, phone=excluded.phone, resume=excluded.resume`)
         .bind(owner, name, email, phone, resume).run();

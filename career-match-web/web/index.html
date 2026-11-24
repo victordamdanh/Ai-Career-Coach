@@ -36,7 +36,7 @@
           <span>Resume file</span>
           <input id="file" type="file" accept=".pdf,.docx,.txt">
         </label>
-        <details id="extraction" hidden><summary>Review extracted text</summary><textarea id="extracted" rows="6" maxlength="3000" aria-label="Extracted resume text"></textarea></details>
+        <details id="extraction"><summary>Paste or edit resume text</summary><textarea id="extracted" rows="6" maxlength="14000" aria-label="Resume text" placeholder="Paste your resume here if a file doesn’t extract correctly."></textarea></details>
         <p id="upload-status" class="hint" role="status"></p>
         <div class="buttons upload-actions">
           <a class="button" href="#preferences">Continue to job preferences</a>
@@ -78,18 +78,23 @@
     <div class="page-heading"><h1 id="review-title" tabindex="-1">Resume review</h1><p>Get feedback on organization, clarity, impact, relevance, and skills. Each category is worth 20 points.</p></div>
     <div class="panel"><div class="section">
       <p id="review-resume-note" class="hint"></p>
-      <div class="buttons"><button id="analyze-resume" type="button">Score my resume</button><a class="button secondary" href="#upload">Edit or upload resume</a></div>
-      <p id="review-status" class="hint" role="status"></p><div id="resume-analysis"></div>
+      <div class="buttons"><button id="analyze-resume" type="button">Score my resume</button><button id="review-ai" class="secondary" type="button">Get AI feedback</button><a class="button secondary" href="#upload">Edit or upload resume</a></div>
+      <p id="review-status" class="hint" role="status"></p><div id="resume-analysis"></div><div id="review-ai-result"></div>
     </div></div>
   </section>
 
   <section data-page="jobs" hidden aria-labelledby="search-title">
     <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse public company career boards. Choose a listing to compare it with your resume.</p></div>
     <div class="panel"><div class="section">
+      <div class="buttons"><button id="find-resume-jobs" type="button">Find companies from my resume</button><button id="ai-job-search" type="button" class="secondary">Refine with AI</button></div>
+      <p class="hint">Searches the connected career boards using your resume skills and job preferences.</p>
+      <p id="matched-jobs-status" class="hint" role="status"></p><div id="matched-companies"></div>
+      <details><summary>Search one company</summary>
       <form id="search">
         <label for="company">Company</label><select id="company"><option value="cloudflare">Cloudflare</option><option value="figma">Figma</option><option value="databricks">Databricks</option></select>
         <label for="query">Keyword or location</label><div class="search-row"><input id="query" maxlength="100" placeholder="e.g. data, software, remote"><button>Search jobs</button></div>
       </form>
+      </details>
       <p id="search-status" class="hint" role="status"></p><div id="listings"></div>
     </div></div>
   </section>
@@ -101,10 +106,10 @@
         <div class="heading"><h2 id="compare-title">Compare documents</h2><p>Use a live listing, a sample, or your own text.</p></div>
         <form class="section" id="compare">
           <label for="samples">Sample posting</label><select id="samples" disabled></select><p id="source" class="hint"></p>
-          <label for="resume">Resume</label><textarea id="resume" required maxlength="3000" placeholder="Paste relevant resume text."></textarea>
+          <label for="resume">Resume</label><textarea id="resume" required maxlength="14000" placeholder="Paste relevant resume text."></textarea>
           <label for="job">Job description</label><textarea id="job" required maxlength="3000" placeholder="Paste the qualifications you want to compare."></textarea>
           <div class="buttons"><button id="live" disabled>Run live AI</button><button id="walk" class="secondary" type="button" disabled>View sample walkthrough</button></div>
-          <p class="hint">The walkthrough uses a fictional resume. Live AI needs WebGPU and downloads a model on first use.</p>
+          <p class="hint">The walkthrough uses a fictional resume. Live AI selects relevant excerpts and needs WebGPU.</p>
           <p id="status" role="status" class="hint"></p>
         </form>
       </section>

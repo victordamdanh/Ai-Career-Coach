@@ -7,7 +7,7 @@ const read = path => readFile(new URL(path, root), "utf8");
 await mkdir(output, { recursive: true });
 
 const staticFiles = [
-  "web/styles.css", "web/agent.mjs", "web/career-steps.mjs", "web/inbox.mjs", "web/chat.mjs",
+  "web/styles.css", "web/agent.mjs", "web/career-steps.mjs", "web/inbox.mjs", "web/chat.mjs", "web/resume-review.mjs",
   "src/api.mjs", "src/data.mjs", "src/listings.mjs", "hosting/pages/request.mjs",
 ];
 const assets = Object.fromEntries(await Promise.all(staticFiles.map(async path => [path.split("/").at(-1), await read(path)])));

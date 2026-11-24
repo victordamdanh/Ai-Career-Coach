@@ -104,3 +104,7 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
 }
 
 .sample-text{white-space:pre-wrap}
+
+.resume-scores{list-style:none;padding:0;margin:0}.resume-scores li{border-top:1px solid var(--line);padding:9px 0}.resume-scores p{margin:3px 0;color:var(--muted)}
+
+.company-match>summary{font-weight:750}.company-match .job-listing{margin-left:17px}.company-match{padding:10px 0}.company-match>summary small{font-weight:400}

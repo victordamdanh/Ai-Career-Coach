@@ -1,5 +1,5 @@
-import { fetchListings } from "./listings.mjs?v=e6cefbb70266";
-import { jobs, resume, description, walkthrough } from "./data.mjs?v=e6cefbb70266";
+import { companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs?v=664c2d22e487";
+import { jobs, resume, description, walkthrough } from "./data.mjs?v=664c2d22e487";
 
 const categoriesList = ["skills", "experience", "education", "certifications", "projects"];
 const priorities = { required: 2, preferred: 1 };
@@ -22,11 +22,31 @@ export function score(rows) {
 
 export async function api(request) {
   const path = new URL(request.url).pathname;
+  if (path === "/api/companies" && request.method === "GET") return Response.json(companyBoards);
+  if (path === "/api/recommend" && request.method === "GET") {
+    const params = new URL(request.url).searchParams;
+    const roles = params.getAll("role");
+    const place = params.get("place") ?? "";
+    const level = params.get("level") ?? "";
+    if (!roles.length || roles.length > 16 || roles.some(role => role.length > 90 || !/[a-z0-9]/i.test(role)) ||
+      place.length > 90 || !["", "intern", "entry", "senior", "manager"].includes(level)) {
+      return Response.json({ error: "Enter a job title or add resume skills to find matching companies." }, { status: 400 });
+    }
+    return Response.json(await recommendCompanies({ roles, place, level }));
+  }
+  if (path === "/api/listing" && request.method === "GET") {
+    const params = new URL(request.url).searchParams;
+    try {
+      return Response.json(await fetchListing(params.get("company"), params.get("id")));
+    } catch {
+      return Response.json({ error: "The posting could not be loaded. Open the official company link to check it." }, { status: 502 });
+    }
+  }
   if (path === "/api/listings" && request.method === "GET") {
     const params = new URL(request.url).searchParams;
     const company = params.get("company") ?? "";
     const phrase = params.get("q") ?? "";
-    if (!["cloudflare", "figma", "databricks"].includes(company) || phrase.length > 100) {
+    if (!Object.hasOwn(companyBoards, company) || phrase.length > 100) {
       return Response.json({ error: "Choose a supported company and use up to 100 characters." }, { status: 400 });
     }
     try {
