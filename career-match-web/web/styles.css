@@ -121,3 +121,23 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
 .job-listing{border-top:1px solid var(--line);padding:10px 0}.job-title{margin:0}.job-listing>.hint{margin:2px 0 4px}.job-listing>details{border-top:0}.company-match>button{margin:3px 0 7px 17px}
 
 .tool-result{border-left:3px solid #8faf9f}.chat-message ul{margin:7px 0 0;padding-left:19px;font-size:.9rem}
+
+.guided-shortlist { border: 1px solid #c5d2c8; border-radius: .8rem; padding: 1rem; margin: 1rem 0; }
+.guided-shortlist h2 { margin-top: 0; }
+.guided-shortlist li + li { margin-top: .7rem; }
+.interview-notice { margin: 1rem 0; padding: 1rem; }
+.interview-notice .buttons { margin-top: .5rem; }
+.interview-call { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .8rem; margin-bottom: 1rem; }
+.interviewer-avatar { min-height: 15rem; display: grid; place-content: center; justify-items: center; gap: .45rem; padding: 1rem; border-radius: .8rem; background: #102c27; color: #f4f7f3; text-align: center; }
+.interviewer-avatar span { color: #c4d8cf; font-size: .85rem; }
+.interviewer-portrait { width: 9rem; height: 9rem; position: relative; overflow: hidden; border-radius: 50%; background: #adc3b9; isolation: isolate; }
+.avatar-shoulders { position: absolute; bottom: -1.2rem; left: 1rem; width: 7rem; height: 4rem; border-radius: 50% 50% 0 0; background: #274a68; }
+.avatar-face { position: absolute; width: 4.65rem; height: 5.5rem; top: .9rem; left: 2.2rem; background: #bf896e; border-radius: 50% 48% 46% 46%; border-top: .85rem solid #332822; box-shadow: .45rem .2rem 0 #332822, -.45rem .1rem 0 #332822; }
+.avatar-face i { position: absolute; top: 1.65rem; width: .37rem; height: .37rem; background: #27201f; border-radius: 50%; left: 1.15rem; }
+.avatar-face i + i { left: 3rem; }
+.avatar-face span { position: absolute; width: .85rem; height: .22rem; background: #773b3e; bottom: .95rem; left: 1.9rem; border-radius: 40%; }
+.interviewer-avatar.speaking .avatar-face span { animation: interview-speech .26s alternate infinite; }
+@keyframes interview-speech { to { transform: scaleY(2.3); } }
+.interview-call video { width: 100%; max-height: 17rem; border-radius: .8rem; background: #102c27; object-fit: cover; }
+#question { font-size: 1.15rem; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .interviewer-avatar.speaking .avatar-face span { animation: none; } }
