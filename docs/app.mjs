@@ -1,11 +1,11 @@
-import { createClassroomRequest } from "./request.mjs?v=e5cd960f1ae4";
+import { createClassroomRequest } from "./request.mjs?v=d49bb9b8ba23";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=e5cd960f1ae4";
-import { attachCareerSteps } from "./career-steps.mjs?v=e5cd960f1ae4";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=e5cd960f1ae4";
-import { attachChat } from "./chat.mjs?v=e5cd960f1ae4";
-import { attachInbox } from "./inbox.mjs?v=e5cd960f1ae4";
-import { canNavigateWorkflow } from "./workflow.mjs?v=e5cd960f1ae4";
+import { browserModel, createAgent } from "./agent.mjs?v=d49bb9b8ba23";
+import { attachCareerSteps } from "./career-steps.mjs?v=d49bb9b8ba23";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=d49bb9b8ba23";
+import { attachChat } from "./chat.mjs?v=d49bb9b8ba23";
+import { attachInbox } from "./inbox.mjs?v=d49bb9b8ba23";
+import { canNavigateWorkflow } from "./workflow.mjs?v=d49bb9b8ba23";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -128,7 +128,8 @@ function updateButtons() {
   $("application-empty").hidden = draftAvailable;
   $("draft-caption").textContent = target ? target.title + " · " + target.company : sample()?.title || $("role").value.trim() || "Your selected posting";
   $("employer").hidden = !target;
-  $("packet").hidden = !target;
+  $("employer").textContent = target?.provider === "jobicy" ? "Open Jobicy posting" : "Open employer application";
+  $("packet").hidden = !target || target.provider === "jobicy";
   $("draft-button").disabled = busy || !lastResult;
   $("draft-instructions").hidden = !!lastResult;
 }
@@ -173,7 +174,7 @@ function listingCard(listing) {
   const item = el("article", "", "job-listing");
   const heading = el("h3", "", "job-title");
   const title = officialLink(listing.url, listing.title);
-  title.title = "Open the official job posting";
+  title.title = listing.provider === "jobicy" ? "Open the posting on Jobicy" : "Open the official job posting";
   heading.append(title);
   const details = el("details");
   const summary = el("summary", "Job details");
@@ -187,6 +188,12 @@ function listingCard(listing) {
   async function loadDescription(refresh = false) {
     if (pending) return pending;
     if (listing.description && !refresh) return listing;
+    if (listing.provider === "jobicy") {
+      const { status: active } = await request("remote-status?" + new URLSearchParams({ id: listing.id }));
+      if (active === "closed") throw new Error("This posting has closed. Choose another opening.");
+      if (active !== "active") throw new Error("The posting is no longer confirmed open. Check the Jobicy link or choose another opening.");
+      return listing;
+    }
     description.textContent = "Loading the official job description…";
     const params = new URLSearchParams({ company: listing.companyId, id: listing.id });
     pending = request("listing?" + params).then(posting => {
@@ -227,7 +234,10 @@ function listingCard(listing) {
   });
   actions.append(compare);
   details.append(summary, description);
-  item.append(heading, el("p", listing.location, "hint"), details, actions, matchStatus);
+  const source = listing.provider === "jobicy" ? " · Via Jobicy" : "";
+  item.append(heading, el("p", listing.location + source, "hint"));
+  if (listing.matchedSkills?.length) item.append(el("p", "Resume skills mentioned: " + listing.matchedSkills.join(", "), "hint"));
+  item.append(details, actions, matchStatus);
   return item;
 }
 
@@ -237,6 +247,66 @@ function companyQueryKey() {
 
 const resumeJobs = $("find-resume-jobs");
 const refineJobs = $("ai-job-search");
+function companyCard(group) {
+  const item = el("details", "", "company-match");
+  const summary = el("summary", group.company);
+  summary.append(el("small", group.total + " matching " + (group.total === 1 ? "opening" : "openings")));
+  const openings = el("div");
+  const more = el("button", "", "secondary");
+  more.type = "button";
+  let shown = 0;
+  function revealOpenings() {
+    const end = Math.min(shown + 8, group.jobs.length);
+    openings.append(...group.jobs.slice(shown, end).map(listingCard));
+    shown = end;
+    more.hidden = shown >= group.jobs.length;
+    more.textContent = "Show more jobs (" + (group.jobs.length - shown) + " remaining)";
+  }
+  more.addEventListener("click", revealOpenings);
+  revealOpenings();
+  item.append(summary, openings, more);
+  return item;
+}
+
+function showCompanies(matches) {
+  const groups = el("div");
+  const more = el("button", "", "secondary");
+  more.type = "button";
+  let shown = 0;
+  function revealCompanies() {
+    const end = Math.min(shown + 12, matches.length);
+    const next = matches.slice(shown, end).map(companyCard);
+    if (!shown && next.length) next[0].open = true;
+    groups.append(...next);
+    shown = end;
+    more.hidden = shown >= matches.length;
+    more.textContent = "Show more companies (" + (matches.length - shown) + " remaining)";
+  }
+  more.addEventListener("click", revealCompanies);
+  revealCompanies();
+  $("matched-companies").replaceChildren(groups, more);
+}
+
+async function suggestJobTitles(text, title) {
+  status("ai-job-search-status", "Finding related job titles from your resume…");
+  try {
+    const generate = await browserModel(progress =>
+      status("ai-job-search-status", "Loading the model (" + progress + "%)…"), { fast: true });
+    const raw = await generate(
+      "You identify plausible job titles from a resume. Use the given experience. Return JSON only with common job titles and no employers, names, or other personal details.",
+      'Return {"roles":["short common job title"]} with up to five distinct job titles.',
+      { resume: resumeExcerpt(text, title, 1600), desiredRole: title },
+      { maxTokens: 200 },
+    );
+    const { roles } = JSON.parse(raw);
+    if (Array.isArray(roles)) {
+      return roles.filter(role => typeof role === "string" && role.length <= 65 &&
+        /^[A-Za-z0-9][A-Za-z0-9 /&+-]+$/.test(role)).slice(0, 5);
+    }
+  } catch { /* Live search still uses the resume's extracted skills and roles. */ }
+  return [];
+}
+
 async function searchResumeCompanies(refine) {
   if (resumeJobs.disabled) return;
   const text = resume.value.trim();
@@ -245,41 +315,23 @@ async function searchResumeCompanies(refine) {
     status("matched-jobs-status", "Upload a resume or enter a desired job title in Preferences.", true);
     return;
   }
-  lastCompanyQuery = companyQueryKey();
+  const resultKey = companyQueryKey();
+  if (resultKey !== lastCompanyQuery) $("matched-companies").replaceChildren();
+  lastCompanyQuery = resultKey;
   resumeJobs.disabled = refineJobs.disabled = true;
-  $("matched-companies").replaceChildren();
+  status("ai-job-search-status");
   const profile = resumeReview?.profile ?? resumeProfile(text);
-  let inferred = [];
-  let aiWorked = false;
-  try {
-    if (refine && text.length >= 20) {
-      try {
-        status("matched-jobs-status", "Finding job titles that fit the resume…");
-        const generate = await browserModel(progress =>
-          status("matched-jobs-status", "Loading the model (" + progress + "%)…"), { fast: true });
-        const raw = await generate(
-          "You identify plausible job titles from a resume. Use the given experience and don't invent qualifications. Output JSON only.",
-          'Return {"roles":["short common job title"]} with up to five distinct job titles. Use common job search wording.',
-          { resume: resumeExcerpt(text, title, 1600), desiredRole: title },
-          { maxTokens: 200 },
-        );
-        const result = JSON.parse(raw);
-        if (Array.isArray(result.roles)) {
-          inferred = result.roles.filter(role => typeof role === "string" && role.length <= 65 &&
-            /^[A-Za-z0-9][A-Za-z0-9 /&+-]+$/.test(role)).slice(0, 5);
-          aiWorked = inferred.length > 0;
-        }
-      } catch { /* Resume skill matches are still available without the model. */ }
-    }
-    const roles = [...new Set([title, ...inferred, ...profile.roles].filter(Boolean))].slice(0, 16);
-    if (!roles.length) {
-      status("matched-jobs-status", "Add a job title in Preferences or use Refine with AI to suggest roles from your resume.", true);
-      return;
-    }
-    status("matched-jobs-status", "Checking connected company career boards…");
-    const params = new URLSearchParams({ place: $("place").value.trim(), level: $("level").value });
+  const rolesFor = additions => [...new Set([title, ...additions, ...profile.roles].filter(Boolean).map(role => role.toLowerCase()))].slice(0, 16);
+  const baseRoles = rolesFor([]);
+  const useAI = refine && text.length >= 20;
+  const suggestions = useAI ? suggestJobTitles(text, title) : Promise.resolve([]);
+  const filters = { place: $("place").value.trim(), level: $("level").value };
+
+  async function fetchGroups(roles, aiWorked = false) {
+    status("matched-jobs-status", "Checking live job sources…");
+    const params = new URLSearchParams(filters);
     roles.forEach(role => params.append("role", role));
-    const resultKey = lastCompanyQuery;
+    profile.skills.slice(0, 16).forEach(skill => params.append("skill", skill));
     const { matches, checked, unavailable } = await request("recommend?" + params);
     if (resultKey !== companyQueryKey()) {
       status("matched-jobs-status", "Your resume or preferences changed. Search again to update the results.");
@@ -287,32 +339,29 @@ async function searchResumeCompanies(refine) {
     }
     if (checked.length) searchedQuery = resultKey;
     const label = aiWorked ? "AI-suggested and resume-based job titles" : "resume skills and job preferences";
-    const lines = [matches.length + " matching " + (matches.length === 1 ? "company" : "companies") + " across " + checked.length + " checked boards. Search used " + label + "."];
+    const lines = [matches.length + " matching " + (matches.length === 1 ? "company" : "companies") + " across " + checked.length + " live sources. Search used " + label + "."];
     if (!matches.length && checked.length) lines.push("Try broadening the title, location, or experience level.");
     if (unavailable.length) lines.push("Couldn’t check " + unavailable.join(", ") + ".");
     status("matched-jobs-status", lines.join(" "), !checked.length);
-    const cards = matches.map(group => {
-      const item = el("details", "", "company-match");
-      const summary = el("summary", group.company);
-      summary.append(el("small", group.total + " matching " + (group.total === 1 ? "opening" : "openings")));
-      const openings = el("div");
-      const more = el("button", "", "secondary");
-      more.type = "button";
-      let shown = 0;
-      function revealOpenings() {
-        const end = Math.min(shown + 8, group.jobs.length);
-        openings.append(...group.jobs.slice(shown, end).map(listingCard));
-        shown = end;
-        more.hidden = shown >= group.jobs.length;
-        more.textContent = "Show more jobs (" + (group.jobs.length - shown) + " remaining)";
-      }
-      more.addEventListener("click", revealOpenings);
-      revealOpenings();
-      item.append(summary, openings, more);
-      return item;
-    });
-    if (cards.length) cards[0].open = true;
-    $("matched-companies").replaceChildren(...cards);
+    showCompanies(matches);
+  }
+
+  try {
+    if (baseRoles.length) await fetchGroups(baseRoles).catch(error => status("matched-jobs-status", error.message, true));
+    const inferred = await suggestions;
+    if (resultKey !== companyQueryKey()) return;
+    const additional = inferred.filter(role => !baseRoles.includes(role.toLowerCase()));
+    if (additional.length) {
+      status("ai-job-search-status", "AI added titles: " + additional.join(", ") + ".");
+      await fetchGroups(rolesFor(additional), true);
+    } else if (useAI) {
+      status("ai-job-search-status", "No additional AI titles. Search used your resume and preferences.");
+    } else if (refine) {
+      status("ai-job-search-status", "Upload a resume for AI title suggestions.");
+    }
+    if (!baseRoles.length && !additional.length) {
+      status("matched-jobs-status", "Add a job title in Preferences or use Search with AI to suggest roles from your resume.", true);
+    }
   } catch (error) {
     status("matched-jobs-status", error.message, true);
   } finally {
@@ -336,7 +385,7 @@ request("companies").then(companies => {
 function chooseListing(listing) {
   select.value = "";
   const source = $("source");
-  source.replaceChildren(el("strong", listing.title + " · " + listing.company), officialLink(listing.url, "Open official posting"));
+  source.replaceChildren(el("strong", listing.title + " · " + listing.company), officialLink(listing.url, listing.provider === "jobicy" ? "Open Jobicy posting" : "Open official posting"));
   source.hidden = false;
   job.value = listing.excerpt;
   setTarget(listing);

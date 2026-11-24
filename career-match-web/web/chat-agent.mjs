@@ -53,7 +53,7 @@ export function createCareerChatAgent(request) {
           return {
             label: "Live job search",
             direct: true,
-            summary: "Checked " + checked.length + " company career boards and found " + matches.length + " matching companies. " +
+            summary: "Checked " + checked.length + " live job sources and found " + matches.length + " matching companies. " +
               (listings.length ? "Examples: " + listings.map(job => job.title + " at " + job.company + " (" + job.location + ")").join("; ") + "." : "No matching postings were returned for these titles and filters."),
             links: [...listings.map(job => ({ text: job.title + " · " + job.company, href: job.url })),
               { text: "Open Find Jobs", href: "#jobs" }],

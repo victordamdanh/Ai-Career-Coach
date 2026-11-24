@@ -1,4 +1,4 @@
-import { companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs";
+import { checkRemoteListing, companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs";
 import { jobs, resume, description, walkthrough } from "./data.mjs";
 
 const categoriesList = ["skills", "experience", "education", "certifications", "projects"];
@@ -26,13 +26,23 @@ export async function api(request) {
   if (path === "/api/recommend" && request.method === "GET") {
     const params = new URL(request.url).searchParams;
     const roles = params.getAll("role");
+    const skills = params.getAll("skill");
     const place = params.get("place") ?? "";
     const level = params.get("level") ?? "";
     if (!roles.length || roles.length > 16 || roles.some(role => role.length > 90 || !/[a-z0-9]/i.test(role)) ||
+      skills.length > 16 || skills.some(skill => skill.length > 50 || !/[a-z0-9]/i.test(skill)) ||
       place.length > 90 || !["", "intern", "entry", "senior", "manager"].includes(level)) {
       return Response.json({ error: "Enter a job title or add resume skills to find matching companies." }, { status: 400 });
     }
-    return Response.json(await recommendCompanies({ roles, place, level }));
+    return Response.json(await recommendCompanies({ roles, place, level, skills, includeRemote: true }));
+  }
+  if (path === "/api/remote-status" && request.method === "GET") {
+    try {
+      const id = new URL(request.url).searchParams.get("id");
+      return Response.json({ status: await checkRemoteListing(id) });
+    } catch {
+      return Response.json({ error: "The live posting status could not be checked. Open the source link to check it." }, { status: 502 });
+    }
   }
   if (path === "/api/listing" && request.method === "GET") {
     const params = new URL(request.url).searchParams;

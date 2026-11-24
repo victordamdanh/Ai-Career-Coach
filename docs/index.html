@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
-<link rel="stylesheet" href="./styles.css?v=e5cd960f1ae4">
-<script type="module" src="./app.mjs?v=e5cd960f1ae4"></script>
+<link rel="stylesheet" href="./styles.css?v=d49bb9b8ba23">
+<script type="module" src="./app.mjs?v=d49bb9b8ba23"></script>
 </head>
 <body>
 <header>
@@ -85,8 +85,9 @@
     <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse live company listings and choose a job to match its qualifications against your resume.</p></div>
     <div class="flow-actions"><a class="button" href="#match">Continue to Job Match</a></div>
     <div class="panel"><div class="section">
-      <div class="buttons"><button id="find-resume-jobs" type="button">Find companies from my resume</button><button id="ai-job-search" type="button" class="secondary">Refine with AI</button></div>
-      <p class="hint">Searches the connected career boards using your resume skills and job preferences.</p>
+      <div class="buttons"><button id="find-resume-jobs" type="button">Refresh live jobs</button><button id="ai-job-search" type="button" class="secondary">Search with AI</button></div>
+      <p class="hint">Search company career boards and a <a href="https://jobicy.com/" target="_blank" rel="noopener noreferrer">remote jobs feed from Jobicy</a> using your resume skills and preferences. AI suggests more relevant titles to search.</p>
+      <p id="ai-job-search-status" class="hint" role="status"></p>
       <p id="matched-jobs-status" class="hint" role="status"></p><div id="matched-companies"></div>
       <details><summary>Search one company</summary>
       <form id="search">

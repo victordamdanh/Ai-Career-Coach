@@ -1,8 +1,12 @@
 export const companyBoards = {
   anthropic: "Anthropic", airbnb: "Airbnb", cloudflare: "Cloudflare", databricks: "Databricks",
   discord: "Discord", dropbox: "Dropbox", figma: "Figma", reddit: "Reddit", roblox: "Roblox", stripe: "Stripe",
+  asana: "Asana", chime: "Chime", duolingo: "Duolingo", elastic: "Elastic", gitlab: "GitLab",
+  instacart: "Instacart", lyft: "Lyft", mongodb: "MongoDB", twilio: "Twilio",
 };
 const boardCache = new Map();
+const remoteCache = new Map();
+const remoteEndpoint = "https://jobicy.com/api/jobs";
 const entities = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "’", ndash: "–", mdash: "—" };
 const levelPatterns = {
   intern: /\bintern(?:ship)?s?\b/i,
@@ -87,36 +91,98 @@ export async function fetchListing(company, id, fetcher = fetch) {
 
 const titleKey = text => " " + text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() + " ";
 
-export async function recommendCompanies({ roles, place, level }, fetcher = fetch) {
+async function remotePage(params, fetcher) {
+  const url = remoteEndpoint + "?" + params;
+  const cached = remoteCache.get(url);
+  if (cached?.expires > Date.now()) return cached.data;
+  const response = await fetcher(url, { signal: AbortSignal.timeout(6500) });
+  if (!response.ok) throw new Error("The remote job feed is unavailable.");
+  const data = await response.json();
+  if (!Array.isArray(data.jobs) || data.success === false) throw new Error("The remote job feed returned an unexpected response.");
+  if (remoteCache.size >= 32) remoteCache.delete(remoteCache.keys().next().value);
+  remoteCache.set(url, { data, expires: Date.now() + 60 * 60_000 });
+  return data;
+}
+
+function toRemoteListing(job) {
+  if (!Number.isSafeInteger(job.id) || job.id < 1 || typeof job.jobTitle !== "string" ||
+    typeof job.companyName !== "string" || typeof job.jobDescription !== "string") return null;
+  let url;
+  try { url = new URL(job.url); } catch { return null; }
+  if (url.origin !== "https://jobicy.com" || url.username || url.password || !url.pathname.startsWith("/jobs/")) return null;
+  const description = jobText(job.jobDescription);
+  if (description.length < 20) return null;
+  const location = ["Remote", typeof job.jobGeo === "string" && job.jobGeo.trim()].filter(Boolean).join(" · ");
+  const seniority = [job.jobLevel, ...(Array.isArray(job.jobType) ? job.jobType : [])].filter(value => typeof value === "string").join(" ");
+  return { id: job.id, title: decode(job.jobTitle).trim(), company: decode(job.companyName).trim(), url: job.url, location, seniority,
+    provider: "jobicy", description: description.slice(0, 18_000), excerpt: excerpt(description) };
+}
+
+async function remoteListings(roles, fetcher) {
+  const terms = roles.slice(0, 6).map(role => role.trim().match(/\b(?!(?:senior|junior|staff|lead|principal|entry|intern)\b)[a-z]{3,}\b/i)?.[0]?.toLowerCase());
+  const tags = [...new Set(terms.filter(Boolean))].slice(0, 2);
+  const feeds = await Promise.allSettled((tags.length ? tags : [""]).map(async tag => {
+    const params = new URLSearchParams({ count: "100" });
+    if (tag) params.set("tag", tag);
+    const first = await remotePage(params, fetcher);
+    if (!first.nextCursor || typeof first.nextCursor !== "string") return first.jobs;
+    params.set("cursor", first.nextCursor);
+    try {
+      return first.jobs.concat((await remotePage(params, fetcher)).jobs);
+    } catch {
+      return first.jobs;
+    }
+  }));
+  if (feeds.every(feed => feed.status === "rejected")) throw new Error("The remote job feed is unavailable.");
+  return feeds.flatMap(feed => feed.status === "fulfilled" ? feed.value : []).map(toRemoteListing).filter(Boolean);
+}
+
+export async function checkRemoteListing(id, fetcher = fetch) {
+  if (!/^[1-9]\d{0,15}$/.test(id) || !Number.isSafeInteger(Number(id))) throw new Error("Choose a valid listing.");
+  const response = await fetcher(remoteEndpoint + "/status?" + new URLSearchParams({ ids: id }), { signal: AbortSignal.timeout(6500) });
+  if (!response.ok) throw new Error("The posting status could not be checked.");
+  const { jobs } = await response.json();
+  return Array.isArray(jobs) ? jobs.find(job => job.id === Number(id))?.status ?? "unknown" : "unknown";
+}
+
+export async function recommendCompanies({ roles, place, level, skills = [], includeRemote = false }, fetcher = fetch) {
   const query = [...new Set(roles.map(titleKey))].filter(role => role.trim());
   const location = place.toLowerCase().trim().split(/[\s,]+/).filter(Boolean);
-  const companies = Object.keys(companyBoards);
-  const results = await Promise.allSettled(companies.map(async company => {
+  const sources = Object.entries(companyBoards).map(([company, name]) => [name, async () => {
     const jobs = await boardJobs(company, false, fetcher);
-    const matches = [];
-    for (const job of jobs) {
-      const listing = toListing(job, company);
-      if (!listing || (level && !levelPatterns[level].test(listing.title))) continue;
-      if (!location.every(word => listing.location.toLowerCase().includes(word))) continue;
-      const title = titleKey(listing.title);
-      const rank = query.reduce((total, role, index) => title.includes(role) ? total + query.length - index : total, 0);
-      if (rank) matches.push({ listing, rank });
-    }
-    matches.sort((a, b) => b.rank - a.rank || a.listing.title.localeCompare(b.listing.title));
-    return { company: companyBoards[company], companyId: company, total: matches.length, jobs: matches.map(match => match.listing), rank: matches[0]?.rank ?? 0 };
-  }));
+    return jobs.map(job => toListing(job, company)).filter(Boolean);
+  }]);
+  if (includeRemote) sources.push(["Jobicy", () => remoteListings(roles, fetcher)]);
+  const results = await Promise.allSettled(sources.map(([, load]) => load()));
   const checked = [];
   const unavailable = [];
-  const matches = [];
+  const companies = new Map();
   for (const [index, result] of results.entries()) {
-    const name = companyBoards[companies[index]];
+    const name = sources[index][0];
     if (result.status === "rejected") {
       unavailable.push(name);
-    } else {
-      checked.push(name);
-      if (result.value.total) matches.push(result.value);
+      continue;
+    }
+    checked.push(name);
+    for (const listing of result.value) {
+      if (level && !levelPatterns[level].test([listing.title, listing.seniority].filter(Boolean).join(" "))) continue;
+      if (!location.every(word => listing.location.toLowerCase().includes(word))) continue;
+      const title = titleKey(listing.title);
+      const rank = query.reduce((total, role, position) => title.includes(role) ? total + query.length - position : total, 0);
+      if (!rank) continue;
+      const text = titleKey(listing.title + " " + (listing.description ?? ""));
+      const matchedSkills = skills.filter(skill => text.includes(titleKey(skill)));
+      const companyKey = titleKey(listing.company);
+      const listingKey = (listing.provider ?? "greenhouse") + "/" + listing.id;
+      const openings = companies.get(companyKey) ?? new Map();
+      if (!openings.has(listingKey)) openings.set(listingKey, { listing: { ...listing, matchedSkills }, rank: rank * 10 + matchedSkills.length });
+      companies.set(companyKey, openings);
     }
   }
+  const matches = [...companies.values()].map(openings => {
+    const rows = [...openings.values()].sort((a, b) => b.rank - a.rank || a.listing.title.localeCompare(b.listing.title));
+    return { company: rows[0].listing.company, jobs: rows.map(row => row.listing), rank: rows[0].rank, total: rows.length };
+  });
   matches.sort((a, b) => b.rank - a.rank || b.total - a.total || a.company.localeCompare(b.company));
   return { matches, checked, unavailable };
 }
