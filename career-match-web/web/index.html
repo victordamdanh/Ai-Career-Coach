@@ -20,6 +20,11 @@
     <a href="#upload">Resume</a><a href="#preferences">Preferences</a><a href="#review">Resume review</a><a href="#jobs">Find jobs</a><a href="#match">Job match</a><a href="#application">Application</a><a href="#inbox">Inbox</a><a href="#interview">Interview</a><a href="#chat">Career Chat</a><a href="#profile">Profile</a>
   </nav>
   <aside id="interview-notice" class="panel interview-notice" role="status" hidden></aside>
+  <section id="automatic-run" class="panel automatic-run" aria-labelledby="automatic-run-title" hidden>
+    <h2 id="automatic-run-title">AI workflow</h2>
+    <p id="automatic-run-status" role="status"></p>
+    <button id="stop-automatic" type="button" class="secondary" hidden>Stop AI workflow</button>
+  </section>
 
   <section data-page="upload" aria-labelledby="upload-title">
     <div class="intro">
@@ -40,7 +45,7 @@
         <details id="extraction" hidden><summary>Review or edit extracted text</summary><textarea id="extracted" rows="6" maxlength="14000" aria-label="Extracted resume text"></textarea></details>
         <p id="upload-status" class="hint" role="status"></p>
         <div class="flow-actions"><a class="button" href="#preferences">Set preferences myself</a><button type="button" id="start-ai" disabled>Start with AI</button></div>
-        <p class="hint">Start with AI to review your resume and find openings after you confirm your preferences.</p>
+        <p class="hint">Upload a resume to enable Start with AI. It reviews your resume, searches live openings, and prepares drafts for your approval.</p>
         <p id="edition-note" class="hint">File extraction runs in your browser.</p>
       </div>
     </section>
@@ -66,6 +71,7 @@
     <div class="panel"><div class="section preferences-fields">
       <p class="hint full-width">Choose a suggestion or type your own value.</p>
       <p class="hint full-width" id="guided-preferences" role="status" hidden></p>
+      <div class="buttons full-width"><button id="continue-automatic" type="button" hidden>Run AI workflow</button></div>
       <div><label for="role">Job title</label><div class="preference-picker"><input id="role" maxlength="90" placeholder="e.g. Data Analyst" autocomplete="off"></div></div>
       <div><label for="place">Location</label><div class="preference-picker"><input id="place" maxlength="90" placeholder="e.g. Phoenix, AZ or Remote" autocomplete="off"></div></div>
       <div><label for="level">Level or employment type</label><div class="preference-picker"><input id="level" maxlength="80" placeholder="e.g. Entry level or Full-time" autocomplete="off"></div></div>
@@ -96,7 +102,7 @@
       <p id="matched-jobs-status" class="hint" role="status"></p>
       <section id="guided-shortlist" class="guided-shortlist" aria-labelledby="guided-shortlist-title" hidden>
         <h2 id="guided-shortlist-title">Application shortlist</h2>
-        <p class="hint">Select openings below. The agent compares them with your resume and prepares drafts for you to review.</p>
+        <p class="hint">Review the jobs prepared by the AI workflow, or select other openings below to prepare more drafts.</p>
         <div class="buttons"><button id="prepare-applications" type="button" disabled>Prepare selected applications</button><span id="guided-selection" class="hint"></span></div>
         <p id="guided-status" class="hint" role="status"></p>
         <ol id="guided-applications"></ol>
@@ -143,6 +149,10 @@
     <div class="page-heading"><h1 id="draft-title" tabindex="-1">Application draft</h1><p>Use verified resume evidence to prepare a cover note for a specific job.</p></div>
     <div class="flow-actions"><a class="button" href="#inbox">Continue to Interview Inbox</a></div>
     <div id="application-empty" class="panel"><div class="section"><p>Select a job listing or complete a Job Match report to start a draft.</p><div class="buttons stage-actions"><a class="button" href="#jobs">Find a job</a></div></div></div>
+    <div id="automatic-draft-note" class="panel automatic-run" hidden>
+      <p id="automatic-draft-summary" role="status"></p>
+      <div class="buttons"><a class="button secondary" href="#jobs">View all prepared drafts</a><a class="button secondary" href="#match">View match report</a></div>
+    </div>
     <div class="panel" id="application" hidden>
       <div class="heading"><h2 id="draft-caption"></h2></div>
       <div class="section">
@@ -169,6 +179,7 @@
   <section data-page="inbox" hidden aria-labelledby="inbox-title">
     <div class="page-heading"><h1 id="inbox-title" tabindex="-1">Interview inbox</h1><p>Check a recruiter reply for a possible interview invitation.</p></div>
     <div class="flow-actions"><a class="button" href="#interview">Continue to Interview Practice</a></div>
+    <p id="automatic-inbox-note" class="hint" role="status" hidden></p>
     <div class="panel"><div class="section">
       <label for="recruiter-message">Recruiter email or sample message</label><textarea id="recruiter-message" maxlength="5000" placeholder="Paste a message to check for an interview invitation."></textarea>
       <div class="buttons"><button id="check-message" type="button">Check for interview invitation</button><button id="load-message" class="secondary" type="button">Load sample email</button></div>
