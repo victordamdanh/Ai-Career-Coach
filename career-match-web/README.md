@@ -4,6 +4,14 @@ AI Career Match brings resume review, live job discovery, evidence-based matchin
 
 [Open the web app](https://victordamdanh.github.io/Ai-Career-Coach/) · [Feature and user guide](../README.md#use-the-app) · [Gmail setup](../README.md#connect-gmail)
 
+## Guided applications and shared interview practice
+
+Upload a resume and choose **Set preferences myself** or **Start with AI**. The guided flow suggests a role, scores the resume on the Resume Review page, and looks for live openings after the user confirms preferences. Select up to four openings on Find Jobs to prepare and compare a batch of drafts. Each draft can be reviewed in Job Match and Application Draft. The application can be sent by Gmail when the posting accepts email applications and the user confirms the recipient and attachment. For employer web forms, use the employer link or the optional Greenhouse form helper and mark the application submitted after completing it.
+
+Interview Inbox can check Gmail every two minutes while the tab is open. To apply company labels to linked recruiter conversations, choose the labeling option and grant Gmail modify access. Read-only inbox access remains available. The send flow asks for a separate send authorization. Configure the corresponding Gmail scopes on the OAuth app before testing those features. The browser keeps the watch list and OAuth tokens in memory.
+
+Both start paths use the same Interview Practice page. Maya, the illustrated interviewer, reads questions aloud. Answer by voice or text and choose **Pause** to step away or **End interview** to finish early. After up to three answers, the app scores the transcript and gives suggestions. A linked interview notice can open the practice page with that posting’s context.
+
 ## Start the local app
 
 Use Node.js **22.13 or later**. Run the commands from this directory.
