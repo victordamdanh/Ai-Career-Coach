@@ -61,12 +61,12 @@ export function createCareerChatAgent(request) {
       }
       case "match": {
         const report = context?.match;
-        const rows = report?.mode === "live" ? report.rows.slice(0, 5) : [];
+        const rows = report?.rows.slice(0, 5) ?? [];
         return {
           label: "Job match report",
           summary: rows.length
-            ? "Current match score: " + report.rubric.score + "%. Verified statuses: " + rows.map(row => row.requirement + " (" + row.status + ")").join("; ") + "."
-            : "No live match report was included. Ask the user to run Job Match with their resume and selected posting first.",
+            ? (report.mode === "source" ? "Source-based comparison scored " : "Current match scored ") + report.rubric.score + "%. Qualifications shown are " + rows.map(row => row.requirement + " (" + row.status + ")").join("; ") + "."
+            : "No match report was included. Ask the user to run Job Match with their resume and selected posting first.",
           links: [{ text: "Open Job Match", href: "#match" }],
         };
       }

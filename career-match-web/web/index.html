@@ -108,7 +108,7 @@
           <label for="resume">Resume</label><textarea id="resume" readonly maxlength="14000" placeholder="Upload your resume to fill this field."></textarea>
           <label for="job">Job description</label><textarea id="job" required maxlength="3000" placeholder="Paste the qualifications you want to compare."></textarea>
           <div class="buttons"><button id="live" disabled>Run live AI</button><a href="#upload" class="button secondary">Upload or edit resume</a></div>
-          <p class="hint">Live AI compares relevant excerpts from your uploaded resume with the job description. It needs WebGPU.</p>
+          <p class="hint">Job Match checks excerpts from your resume against the posting. Live AI uses WebGPU. A source-based comparison is available when the model can’t complete the match.</p>
           <p id="status" role="status" class="hint"></p>
         </form>
       </section>

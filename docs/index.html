@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
-<link rel="stylesheet" href="./styles.css?v=24d79c6f2b61">
-<script type="module" src="./app.mjs?v=24d79c6f2b61"></script>
+<link rel="stylesheet" href="./styles.css?v=a00ba076a8be">
+<script type="module" src="./app.mjs?v=a00ba076a8be"></script>
 </head>
 <body>
 <header>
@@ -108,7 +108,7 @@
           <label for="resume">Resume</label><textarea id="resume" readonly maxlength="14000" placeholder="Upload your resume to fill this field."></textarea>
           <label for="job">Job description</label><textarea id="job" required maxlength="3000" placeholder="Paste the qualifications you want to compare."></textarea>
           <div class="buttons"><button id="live" disabled>Run live AI</button><a href="#upload" class="button secondary">Upload or edit resume</a></div>
-          <p class="hint">Live AI compares relevant excerpts from your uploaded resume with the job description. It needs WebGPU.</p>
+          <p class="hint">Job Match checks excerpts from your resume against the posting. Live AI uses WebGPU. A source-based comparison is available when the model can’t complete the match.</p>
           <p id="status" role="status" class="hint"></p>
         </form>
       </section>

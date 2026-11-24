@@ -6,6 +6,7 @@ const files = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
   "/app.mjs": ["app.mjs", "text/javascript; charset=utf-8"],
+  "/match-evidence.mjs": ["match-evidence.mjs", "text/javascript; charset=utf-8"],
   "/agent.mjs": ["agent.mjs", "text/javascript; charset=utf-8"],
   "/resume-review.mjs": ["resume-review.mjs", "text/javascript; charset=utf-8"],
   "/chat-agent.mjs": ["chat-agent.mjs", "text/javascript; charset=utf-8"],

@@ -33,22 +33,60 @@ test("three real posting walkthroughs return reference scores and grounded excer
   }
 });
 
-test("the agent retries an ungrounded model response before calling its scoring tool", async () => {
+test("the agent retries unknown evidence IDs and scores the original quotes", async () => {
   const stages = [];
   const resume = "Built a Python reporting tool.";
   const job = "Python experience is required.";
-  const row = { category: "skills", requirement: "Python experience", jobQuote: job, status: "match", priority: "required", evidence: resume };
   const responses = [
-    { rows: [{ ...row, evidence: "Five years with Python." }] }, { rows: [row] },
-    { actions: ["Document the reporting project", "Add a relevant project link", "Summarize the key report users", "Review the original requirement", "Practice explaining one design choice"] },
+    { rows: [["J1", "skills", "match", "required", "R99"]] },
+    { rows: [["J1", "skills", "match", "required", "R1"]] },
   ];
-  const agent = createAgent(async () => JSON.stringify(responses.shift()), async rows => {
+  const agent = createAgent(async (_system, _prompt, input) => {
+    assert.deepEqual(input, { job: [["J1", job]], resume: [["R1", resume]] });
+    return JSON.stringify(responses.shift());
+  }, async rows => {
     assert.deepEqual(rows, [{ category: "skills", status: "match", priority: "required" }]);
     return score(rows);
   });
   const result = await agent(resume, job, stage => stages.push(stage));
   assert.deepEqual(stages, ["compare", "compare", "score", "recommend"]);
+  assert.equal(result.mode, "live");
   assert.equal(result.rubric.score, 100);
+  assert.equal(result.rows[0].evidence, resume);
+  assert.equal(result.rows[0].jobQuote, job);
+  assert.equal(result.actions.length, 5);
+});
+
+test("Job Match keeps verified rows even when another row has an invalid reference", async () => {
+  let calls = 0;
+  const agent = createAgent(async () => {
+    calls++;
+    return 'Here is the result. {"rows":[["J1","skills","match","required","R1"],["J2","skills","match","required","R90"]]}';
+  }, score);
+  const result = await agent("Built a Python script.", "Python is required. SQL is required.", () => {});
+  assert.equal(calls, 1);
+  assert.equal(result.mode, "live");
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].jobQuote, "Python is required.");
+});
+
+test("Job Match returns a labeled source comparison when AI fails validation or cannot load", async () => {
+  const resume = "Created weekly Python reports.\nNo experience with Tableau.";
+  const job = "Required qualifications\nExperience using Python.\nPreferred qualifications\nExperience using Tableau.";
+  for (const generate of [
+    async () => "incomplete model output",
+    async () => { throw new Error("WebGPU unavailable"); },
+  ]) {
+    const agent = createAgent(generate, score);
+    const result = await agent(resume, job, () => {});
+    assert.equal(result.mode, "source");
+    assert.equal(result.actions.length, 5);
+    assert.deepEqual(result.rows.map(({ status, priority, evidence }) => [status, priority, evidence]), [
+      ["partial", "required", "Created weekly Python reports."],
+      ["gap", "preferred", ""],
+    ]);
+    assert.equal(result.rubric.score, 33);
+  }
 });
 
 test("normalizes and filters Greenhouse listings, keeping the official URL", async () => {
