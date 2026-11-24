@@ -99,7 +99,8 @@ export function fallbackRows(sources) {
       const exact = normalize(row.text) === normalize(posting.text);
       const shared = [...terms].filter(word => row.terms.has(word)).length;
       const sharedSkills = skills.filter(skill => row.skills.includes(skill)).length;
-      const weight = exact ? 100 : (sharedSkills ? 8 * sharedSkills + shared : shared >= 2 && shared / terms.size >= .6 ? shared : 0);
+      const overlap = sharedSkills ? 8 * sharedSkills + shared : shared >= 2 && shared / terms.size >= .6 ? shared : 0;
+      const weight = exact ? 100 : Math.min(99, overlap);
       if (weight > strength) { best = row; strength = weight; }
     }
     return {

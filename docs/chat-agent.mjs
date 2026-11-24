@@ -1,4 +1,4 @@
-import { resumeProfile, reviewResume } from "./resume-review.mjs?v=a00ba076a8be";
+import { resumeProfile, reviewResume } from "./resume-review.mjs?v=c066b94ab201";
 
 function chooseTool(question) {
   if (/\b(?:compare|fit|align|qualification|match report)\b/i.test(question) &&
