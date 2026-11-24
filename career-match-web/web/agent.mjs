@@ -134,10 +134,10 @@ export async function browserModel(progress, { fast = false } = {}) {
         if (!text.trim()) throw new Error("The model did not generate a reply.");
         return text.trim();
       }
-      const result = await engine.chat.completions.create({ ...options, response_format: { type: "json_object" } });
+      const result = await engine.chat.completions.create(options);
       const text = result.choices[0]?.message?.content;
       if (!text?.trim()) throw new Error("The model did not generate a reply.");
-      return text;
+      return text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, "$1");
     }));
   }
 

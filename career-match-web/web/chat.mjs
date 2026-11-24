@@ -7,7 +7,7 @@ export function attachChat({ $, status, el, browserModel, request, json, getCont
   let browserSession;
   function getBrowserChat() {
     browserSession ??= browserModel((progress, backup) =>
-      status("chat-status", "Loading " + (backup ? "the backup model" : "the chat model") + " (" + progress + "%)…"), { fast: true })
+      status("chat-status", progress > 0 ? "Loading " + (backup ? "the backup model" : "the chat model") + " (" + progress + "%)…" : backup ? "Starting the backup model…" : "Preparing the chat model…"), { fast: true })
       .catch(error => { browserSession = undefined; throw error; });
     return browserSession;
   }

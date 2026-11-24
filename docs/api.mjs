@@ -1,5 +1,5 @@
-import { fetchListings } from "./listings.mjs";
-import { jobs, resume, description, walkthrough } from "./data.mjs";
+import { fetchListings } from "./listings.mjs?v=9b389acb2ce7";
+import { jobs, resume, description, walkthrough } from "./data.mjs?v=9b389acb2ce7";
 
 const categoriesList = ["skills", "experience", "education", "certifications", "projects"];
 const priorities = { required: 2, preferred: 1 };
