@@ -38,7 +38,8 @@ export function createCareerChatAgent(request) {
         const roles = [...new Set([titleFromQuestion(question), context?.role, ...profile.roles].filter(Boolean))].slice(0, 16);
         if (!roles.length) return {
           label: "Job search",
-          summary: "A desired job title is needed for a live search. Ask for the target title, or suggest enabling resume details.",
+          direct: true,
+          summary: "Which job title should I look for? You can also enable resume details to search using your experience.",
           links: [{ text: "Set job preferences", href: "#preferences" }],
         };
         const params = new URLSearchParams({ place: context?.place ?? "", level: context?.level ?? "" });
@@ -48,13 +49,14 @@ export function createCareerChatAgent(request) {
           const listings = matches.slice(0, 4).map(group => group.jobs[0]).filter(Boolean);
           return {
             label: "Live job search",
+            direct: true,
             summary: "Checked " + checked.length + " company career boards and found " + matches.length + " matching companies. " +
               (listings.length ? "Examples: " + listings.map(job => job.title + " at " + job.company + " (" + job.location + ")").join("; ") + "." : "No matching postings were returned for these titles and filters."),
             links: [...listings.map(job => ({ text: job.title + " · " + job.company, href: job.url })),
               { text: "Open Find Jobs", href: "#jobs" }],
           };
         } catch {
-          return { label: "Live job search", summary: "The job search did not return results. Do not invent openings.", links: [{ text: "Try Find Jobs", href: "#jobs" }] };
+          return { label: "Live job search", direct: true, summary: "I couldn’t retrieve current postings. Try Find Jobs to search again.", links: [{ text: "Try Find Jobs", href: "#jobs" }] };
         }
       }
       case "match": {

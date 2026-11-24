@@ -9,9 +9,13 @@ export function attachChat({ $, status, el, browserModel, request, json, getCont
   const messages = [];
   const runTool = createCareerChatAgent(request);
   let browserSession;
+  let showModelStatus = true;
   function getBrowserChat() {
-    browserSession ??= browserModel((progress, backup) =>
-      status("chat-status", progress > 0 ? "Loading " + (backup ? "the backup model" : "the chat model") + " (" + progress + "%)…" : backup ? "Starting the backup model…" : "Preparing the chat model…"), { fast: true })
+    browserSession ??= browserModel((progress, backup) => {
+      if (!showModelStatus) return;
+      const model = backup ? "the backup model" : "the chat model";
+      status("chat-status", progress > 0 ? "Loading " + model + " (" + progress + "%)…" : "Preparing " + model + "…");
+    }, { fast: true })
       .catch(error => { browserSession = undefined; throw error; });
     return browserSession;
   }
@@ -20,27 +24,17 @@ export function attachChat({ $, status, el, browserModel, request, json, getCont
       try {
         const generate = await getBrowserChat();
         await generate.warmup();
-        if (!send.disabled) status("chat-status", "Chat is ready.");
+        if (showModelStatus && !send.disabled) status("chat-status", "Chat is ready.");
       } catch {
         if (!send.disabled) status("chat-status");
       }
     }, { once: true });
   }
 
-  function addMessage(role, text, label) {
-    const message = el("article", "", "chat-message " + role);
-    message.append(el("strong", label, "hint"), el("p", text));
-    transcript.append(message);
-    transcript.scrollTop = transcript.scrollHeight;
-    messages.push({ role, text: text.slice(0, 1600) });
-  }
-
-  function addToolResult(result) {
-    if (!result) return;
-    const item = el("article", "", "chat-message tool-result");
-    item.append(el("strong", "Used " + result.label, "hint"), el("p", result.summary));
+  function appendLinks(item, links) {
+    if (!links.length) return;
     const list = el("ul");
-    for (const { text, href } of result.links) {
+    for (const { text, href } of links) {
       const row = el("li");
       const link = href.startsWith("#") ? el("a", text) : officialLink(href, text);
       link.href = href;
@@ -48,6 +42,21 @@ export function attachChat({ $, status, el, browserModel, request, json, getCont
       list.append(row);
     }
     item.append(list);
+  }
+
+  function addMessage(role, text, label, links = []) {
+    const message = el("article", "", "chat-message " + role);
+    message.append(el("strong", label, "hint"), el("p", text));
+    appendLinks(message, links);
+    transcript.append(message);
+    transcript.scrollTop = transcript.scrollHeight;
+    messages.push({ role, text: text.slice(0, 1600) });
+  }
+
+  function addToolResult(result) {
+    const item = el("article", "", "chat-message tool-result");
+    item.append(el("strong", "Used " + result.label, "hint"), el("p", result.summary));
+    appendLinks(item, result.links);
     transcript.append(item);
     transcript.scrollTop = transcript.scrollHeight;
   }
@@ -58,6 +67,7 @@ export function attachChat({ $, status, el, browserModel, request, json, getCont
     if (!question || send.disabled) return;
     send.disabled = true;
     clear.disabled = true;
+    showModelStatus = true;
     status("chat-status", "Getting a response…");
     addMessage("user", question, "You");
     input.value = "";
@@ -76,6 +86,12 @@ export function attachChat({ $, status, el, browserModel, request, json, getCont
     let toolResult;
     try {
       toolResult = await runTool(question, context);
+      if (toolResult?.direct) {
+        showModelStatus = false;
+        addMessage("assistant", toolResult.summary, "Career agent · " + toolResult.label, toolResult.links);
+        status("chat-status");
+        return;
+      }
       if (toolResult) {
         payload.toolResult = toolResult.summary.slice(0, 2000);
         addToolResult(toolResult);
@@ -127,6 +143,7 @@ export function attachChat({ $, status, el, browserModel, request, json, getCont
   });
 
   clear.addEventListener("click", () => {
+    showModelStatus = false;
     messages.length = 0;
     transcript.replaceChildren();
     input.value = "";

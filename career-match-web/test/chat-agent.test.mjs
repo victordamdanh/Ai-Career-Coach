@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createCareerChatAgent } from "../web/chat-agent.mjs";
+import { attachChat } from "../web/chat.mjs";
 
 test("career agent returns actual posting links for a job-search question", async () => {
   const url = "https://job-boards.greenhouse.io/figma/jobs/12345";
@@ -22,4 +23,38 @@ test("career agent can review an uploaded resume, with opt-in context", async ()
   assert.match(answer.summary, /Organization \d+\/20/);
   assert.match(answer.summary, /Skills \d+\/20/);
   assert.equal(await agent("How do I answer an interview question?"), null);
+});
+
+test("Career Chat answers a live job lookup directly with official links", async () => {
+  const elements = new Map();
+  const make = (tag, text, className) => ({
+    tag, text, className, children: [], events: {},
+    append(...children) { this.children.push(...children); },
+    addEventListener(name, handler) { this.events[name] = handler; },
+  });
+  const field = id => {
+    if (!elements.has(id)) elements.set(id, make(id));
+    return elements.get(id);
+  };
+  const url = "https://job-boards.greenhouse.io/figma/jobs/12345";
+  attachChat({
+    $: field,
+    status: () => {},
+    el: make,
+    onDeviceOnly: false,
+    officialLink: (href, title) => ({ href, title }),
+    browserModel: () => assert.fail("A live lookup should render without calling a language model"),
+    request: async route => {
+      assert.match(route, /^recommend\?/);
+      return { checked: ["Figma"], matches: [{ jobs: [{ title: "Data Analyst", company: "Figma", location: "Remote", url }] }] };
+    },
+  });
+  field("chat-input").value = "Find me data analyst jobs";
+  await field("chat-form").events.submit({ preventDefault() {} });
+  const [question, answer] = field("chat-history").children;
+  assert.equal(question.className, "chat-message user");
+  assert.equal(answer.className, "chat-message assistant");
+  assert.match(answer.children[1].text, /Data Analyst at Figma/);
+  assert.equal(answer.children[2].children[0].children[0].href, url);
+  assert.equal(field("chat-submit").disabled, false);
 });

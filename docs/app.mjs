@@ -1,10 +1,10 @@
-import { createClassroomRequest } from "./request.mjs?v=0121d319f728";
+import { createClassroomRequest } from "./request.mjs?v=24d79c6f2b61";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=0121d319f728";
-import { attachCareerSteps } from "./career-steps.mjs?v=0121d319f728";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=0121d319f728";
-import { attachChat } from "./chat.mjs?v=0121d319f728";
-import { attachInbox } from "./inbox.mjs?v=0121d319f728";
+import { browserModel, createAgent } from "./agent.mjs?v=24d79c6f2b61";
+import { attachCareerSteps } from "./career-steps.mjs?v=24d79c6f2b61";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=24d79c6f2b61";
+import { attachChat } from "./chat.mjs?v=24d79c6f2b61";
+import { attachInbox } from "./inbox.mjs?v=24d79c6f2b61";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
