@@ -5,6 +5,7 @@ export function createClassroomRequest() {
   let jobs = [];
   return async function request(path, options) {
     const method = options?.method ?? "GET";
+    if (path === "chat") return Response.json({ error: "This classroom edition uses on-device AI." }, { status: 503 });
     if (path === "account") {
       if (method === "GET") return Response.json({ available: "ready", candidate, jobs });
       if (method === "PUT") candidate = JSON.parse(options.body);

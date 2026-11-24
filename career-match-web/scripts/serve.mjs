@@ -5,7 +5,7 @@ import { Readable } from "node:stream";
 
 const { default: worker } = await import("../dist/server/index.js");
 const port = Number(process.env.PORT ?? 3000);
-const env = { LOCAL_SQLITE: true, DB: localDatabase(process.env.DATABASE_PATH ?? "career-match.sqlite") };
+const env = { LOCAL_SQLITE: true, GEMINI_API_KEY: process.env.GEMINI_API_KEY, DB: localDatabase(process.env.DATABASE_PATH ?? "career-match.sqlite") };
 const server = createServer(async (incoming, outgoing) => {
   try {
     if (!["127.0.0.1:" + port, "localhost:" + port].includes(incoming.headers.host)) {

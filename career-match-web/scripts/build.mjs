@@ -7,19 +7,21 @@ const files = {
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
   "/app.mjs": ["app.mjs", "text/javascript; charset=utf-8"],
   "/agent.mjs": ["agent.mjs", "text/javascript; charset=utf-8"],
+  "/chat.mjs": ["chat.mjs", "text/javascript; charset=utf-8"],
   "/inbox.mjs": ["inbox.mjs", "text/javascript; charset=utf-8"],
   "/career-steps.mjs": ["career-steps.mjs", "text/javascript; charset=utf-8"],
 };
 const assets = Object.fromEntries(await Promise.all(Object.entries(files).map(async ([route, [name, type]]) => [
   route, { type, body: await read("web/" + name) },
 ])));
-const sources = await Promise.all(["src/data.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs"].map(read));
+const sources = await Promise.all(["src/data.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
 const worker = sources.map(source => source.replace(/^import .*?\n/gm, "")).join("\n") + `
 const assets = ${JSON.stringify(assets)};
 export default {
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
     if (pathname === "/api/account" || pathname === "/api/saved-jobs") return account(request, env);
+    if (pathname === "/api/chat") return careerChat(request, env);
     if (pathname.startsWith("/api/")) return api(request);
     const asset = Object.hasOwn(assets, pathname) && assets[pathname];
     if (!asset) return new Response("Page unavailable.", { status: 404 });

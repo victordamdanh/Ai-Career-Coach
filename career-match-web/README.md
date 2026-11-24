@@ -4,13 +4,19 @@ This high-code prototype accompanies AI Career Coach. It helps candidates review
 
 ## Public classroom edition
 
-GitHub Pages serves the classroom demo from this branch’s generated `docs/` folder. Run `node scripts/build-pages.mjs` and copy `dist/pages/` to `docs/` to regenerate it. This edition keeps candidate data in memory for the current tab and uses the same scoring and example cases as the backend. Company searches call public job boards from the browser. Keep local or separately hosted Node/Worker deployments for persistent profile and job storage.
+GitHub Pages serves the classroom demo from this branch’s generated `docs/` folder. Run `node scripts/build-pages.mjs` and copy `dist/pages/` to `docs/` to regenerate it. This edition keeps candidate data in memory for the current tab and uses the same scoring and example cases as the backend. Company searches call public job boards from the browser. Career Chat starts loading a smaller browser model when you focus the question field. It streams short replies and can switch to the larger browser model. The first download depends on your network and device. Keep local or separately hosted Node/Worker deployments for persistent profile and job storage.
 
 ## Run
 
 Use Node.js 22.13 or later. From this folder run `npm start` and open `http://127.0.0.1:3000`. Use `npm test` to run the automated checks and `npm run build` to produce the Worker bundle at `dist/server/index.js`. The local server keeps resumes, applicant contact information, and saved job snapshots in the ignored SQLite file `career-match.sqlite`. Run the local server only on your own machine. A hosted Worker requires a `DB` D1 binding, the included SQL migration, and a trusted sign-in gateway that inserts the authenticated user ID and strips incoming identity headers. Each account can see or delete only its own records.
 
 Desktop Chrome or Edge with WebGPU is recommended for live inference. The first run downloads Qwen 2.5 1.5B through WebLLM. Resume parsing and model inference happen in the browser. A scanned image-only PDF requires OCR before upload. The file reader extracts up to the first 10 PDF pages, and the prototype analyzes an editable 3,000-character excerpt.
+
+## Career Chat
+
+The local and Worker builds use Gemini 3.5 Flash-Lite with Gemini 3.1 Flash-Lite as the backup for temporary provider errors. Set `GEMINI_API_KEY` in the backend environment before starting the server. The key stays server-side. On a hosted Worker, Gemini is available only to signed-in visitors through the trusted sign-in gateway. If Gemini is unavailable, the chat tries the on-device Qwen model and can switch to a smaller Qwen model if the primary browser model fails.
+
+The chat sends resume and job details only when **Include resume and job details** is checked. Chat history stays in the current tab. Use the sample resume for a classroom demo.
 
 ## How it works
 
@@ -38,7 +44,7 @@ To evaluate live results, run each posting with the same fictional resume. Recor
 | Time | Show |
 | --- | --- |
 | 0:00–0:45 | Use the student job-search problem and show the upload and preferences steps. |
-| 0:45–2:10 | Open the web-development walkthrough or run live AI. Expand the Flask versus Node/Express evidence and calculate the partial credit. |
+| 0:45–2:10 | Open Job match, then use the web-development walkthrough or run live AI. Expand the Flask versus Node/Express evidence and calculate the partial credit. |
 | 2:10–3:00 | Explain agent stages, bounded retry, structured output, deterministic scoring, and which data the backend stores. |
 | 3:00–4:10 | Open a sourced job posting, show the reviewed draft, load the sample recruiter email, and demonstrate one practice question. |
 | 4:10–5:00 | Review the three cases, what was verified, and limits such as model latency, small sample size, permissions, and the handoff to employers. |
