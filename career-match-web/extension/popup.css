@@ -1,0 +1,4 @@
+body { width: 300px; padding: 12px; font: 14px system-ui; color: #173029; }
+h1 { margin-top: 0; font-size: 18px; }
+textarea { box-sizing: border-box; width: 100%; display: block; margin: 8px 0; }
+button { padding: 7px 11px; }

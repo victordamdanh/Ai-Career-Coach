@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "AI Career Match Form Helper",
+  "version": "1.0.0",
+  "description": "Fill supported Greenhouse contact fields from a draft you explicitly paste.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {"default_popup": "popup.html"}
+}
