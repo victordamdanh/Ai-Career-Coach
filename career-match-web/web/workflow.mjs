@@ -16,6 +16,12 @@ export function nextInFlow(page) {
   if (index >= 0) return careerFlow[index + 1];
 }
 
+export function canNavigateWorkflow(from, to) {
+  const current = careerFlow.findIndex(step => step.id === from);
+  const destination = careerFlow.findIndex(step => step.id === to);
+  return destination >= 0 && destination <= current + 1;
+}
+
 function recommend(progress) {
   return careerFlow.find(step => !progress?.completed.includes(step.id));
 }

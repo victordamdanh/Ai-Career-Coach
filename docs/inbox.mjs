@@ -1,4 +1,4 @@
-import { detectInvitation } from "./career-steps.mjs?v=8daa16c052c6";
+import { detectInvitation } from "./career-steps.mjs?v=d1900fe296ec";
 
 const scriptUrl = "https://accounts.google.com/gsi/client";
 const scope = "https://www.googleapis.com/auth/gmail.readonly";

@@ -67,21 +67,20 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
 .features{padding-top:28px}
 .features>p{margin-top:5px;color:var(--muted)}
 .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;list-style:none;padding:0;margin:14px 0}
-.feature-grid li{display:flex}
-.feature-grid a{display:flex;flex:1;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:white;text-decoration:none}
-.feature-grid a:hover{border-color:#789e8c}
-.feature-grid a:hover strong{text-decoration:underline}
+.feature-grid li{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:white}
 .feature-grid span{color:var(--muted);font-size:.9rem}
 .steps{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 0;padding-bottom:11px;border-bottom:1px solid var(--line)}
 .steps a{border:1px solid transparent;border-radius:6px;padding:5px 9px;font-size:.87rem;text-decoration:none;font-weight:680}
-.steps a:hover{border-color:#aac1b1}
+.steps a[href]:hover{border-color:#aac1b1}
+.steps a[aria-disabled=true]{color:var(--muted)}
 .steps a[aria-current=page]{background:var(--green);color:white}
 .preferences-fields,.account-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px}
 .full-width{grid-column:1/-1}
 .preferences-fields input,.preferences-fields select,.preferences-fields textarea,.account-fields input{margin-top:4px}
 .method{margin-top:17px}
 .method p{color:var(--muted);font-size:.91rem;margin-top:7px;max-width:75ch}
-.flow-actions{display:flex;justify-content:flex-end;margin-top:16px}
+.flow-actions{position:sticky;top:0;z-index:1;display:flex;justify-content:flex-end;background:#f0f4ef;padding:8px 0;margin-bottom:12px}
+.upload-panel .flow-actions{position:static;background:transparent;margin:12px 0 0;padding:0}
 #saved-jobs:empty{display:none}
 #camera{width:min(440px,100%);border-radius:10px;background:#132620}
 #question{margin:8px 0;font-weight:660}
@@ -100,6 +99,7 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
   .workspace{grid-template-columns:1fr}
   .shell{width:calc(100% - 28px)}
   .intro{padding-top:28px}
+  .flow-actions .button{width:100%}
   .chat-message{max-width:100%}
 }
 

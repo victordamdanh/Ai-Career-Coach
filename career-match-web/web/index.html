@@ -38,28 +38,29 @@
         </label>
         <details id="extraction" hidden><summary>Review or edit extracted text</summary><textarea id="extracted" rows="6" maxlength="14000" aria-label="Extracted resume text"></textarea></details>
         <p id="upload-status" class="hint" role="status"></p>
-        <div class="flow-actions" data-flow-actions></div>
+        <div class="flow-actions"><a class="button" href="#preferences">Continue to Preferences</a></div>
         <p id="edition-note" class="hint">File extraction runs in your browser.</p>
       </div>
     </section>
     <section id="features" class="features" aria-labelledby="features-title">
       <h2 id="features-title" tabindex="-1">How it works</h2>
-      <p>Start with your resume or jump to the feature you need.</p>
+      <p>Start with your resume and use Continue to move through each step.</p>
       <ul class="feature-grid">
-        <li><a href="#preferences"><strong>Set job preferences</strong><span>Choose a job title, location, experience level, and target salary.</span></a></li>
-        <li><a href="#review"><strong>Review your resume</strong><span>Get a score out of 100 and see what to improve.</span></a></li>
-        <li><a href="#jobs"><strong>Find open jobs</strong><span>Browse current company listings and open the official postings.</span></a></li>
-        <li><a href="#match"><strong>Check job fit</strong><span>Compare qualifications against evidence in your resume.</span></a></li>
-        <li><a href="#application"><strong>Prepare an application</strong><span>Draft a cover note and review it before applying.</span></a></li>
-        <li><a href="#inbox"><strong>Check a recruiter reply</strong><span>Spot possible interview invitations in a message.</span></a></li>
-        <li><a href="#interview"><strong>Practice an interview</strong><span>Answer a role-specific question by voice or text and get feedback.</span></a></li>
-        <li><a href="#chat"><strong>Ask Career Chat</strong><span>Get help with resume bullets, applications, and interview prep.</span></a></li>
+        <li><strong>Set job preferences</strong><span>Choose a job title, location, experience level, and target salary.</span></li>
+        <li><strong>Review your resume</strong><span>Get a score out of 100 and see what to improve.</span></li>
+        <li><strong>Find open jobs</strong><span>Browse current company listings and open the official postings.</span></li>
+        <li><strong>Check job fit</strong><span>Compare qualifications against evidence in your resume.</span></li>
+        <li><strong>Prepare an application</strong><span>Draft a cover note and review it before applying.</span></li>
+        <li><strong>Check a recruiter reply</strong><span>Spot possible interview invitations in a message.</span></li>
+        <li><strong>Practice an interview</strong><span>Answer a role-specific question by voice or text and get feedback.</span></li>
+        <li><strong>Ask Career Chat</strong><span>Get help with resume bullets, applications, and interview prep.</span></li>
       </ul>
     </section>
   </section>
 
   <section data-page="preferences" hidden aria-labelledby="preferences-title">
     <div class="page-heading"><h1 id="preferences-title" tabindex="-1">Job preferences</h1><p>Tell us what role you’re looking for or add a description for a specific opening.</p></div>
+    <div class="flow-actions"><a class="button" href="#review">Continue to Resume Review</a></div>
     <div class="panel"><div class="section preferences-fields">
       <label>Job title<input id="role" maxlength="90" placeholder="e.g. Data Analyst"></label>
       <label>Location<input id="place" maxlength="90" placeholder="e.g. Arizona or Remote"></label>
@@ -67,22 +68,22 @@
       <label>Target salary range (USD)<select id="pay"><option value="">Any range</option><option>Under $60,000</option><option>$60,000–$89,999</option><option>$90,000–$119,999</option><option>$120,000+</option></select></label>
       <label class="full-width">Target job description<textarea id="target-description" maxlength="3000" placeholder="Optional qualifications to compare"></textarea></label>
       <p class="hint full-width">Check pay in the official posting when the public board omits it.</p>
-      <div class="flow-actions full-width" data-flow-actions></div>
     </div></div>
   </section>
 
   <section data-page="review" hidden aria-labelledby="review-title">
     <div class="page-heading"><h1 id="review-title" tabindex="-1">Resume review</h1><p>Get feedback on organization, clarity, impact, relevance, and skills. Each category is worth 20 points.</p></div>
+    <div class="flow-actions"><a class="button" href="#jobs">Continue to Find Jobs</a></div>
     <div class="panel"><div class="section">
       <p id="review-resume-note" class="hint"></p>
       <div class="buttons"><button id="analyze-resume" type="button">Score my resume</button><button id="review-ai" class="secondary" type="button">Get AI feedback</button><a class="button secondary" href="#upload">Edit or upload resume</a></div>
       <p id="review-status" class="hint" role="status"></p><div id="resume-analysis"></div><div id="review-ai-result"></div>
     </div></div>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="jobs" hidden aria-labelledby="search-title">
     <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse public company career boards. Open a job title to view the official posting, or compare the role with your resume.</p></div>
+    <div class="flow-actions"><a class="button" href="#match">Continue to Job Match</a></div>
     <div class="panel"><div class="section">
       <div class="buttons"><button id="find-resume-jobs" type="button">Find companies from my resume</button><button id="ai-job-search" type="button" class="secondary">Refine with AI</button></div>
       <p class="hint">Searches the connected career boards using your resume skills and job preferences.</p>
@@ -95,11 +96,11 @@
       </details>
       <p id="search-status" class="hint" role="status"></p><div id="listings"></div>
     </div></div>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="match" hidden aria-labelledby="match-title">
     <div class="page-heading"><h1 id="match-title" tabindex="-1">Job match</h1><p>Compare your resume with a posting and see which qualifications you can demonstrate.</p></div>
+    <div class="flow-actions"><a class="button" href="#application">Continue to Application Draft</a></div>
     <div class="workspace">
       <section class="panel" aria-labelledby="compare-title">
         <div class="heading"><h2 id="compare-title">Compare documents</h2><p>Use a live listing, a sample, or your own text.</p></div>
@@ -121,11 +122,11 @@
       <p>Required qualifications count twice as much as preferred qualifications. A match earns full credit, partial evidence earns half credit, and a gap earns zero.</p>
       <p>The score estimates qualification alignment. Check eligibility and application requirements in the official posting.</p>
     </details>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="application" hidden aria-labelledby="draft-title">
     <div class="page-heading"><h1 id="draft-title" tabindex="-1">Application draft</h1><p>Use verified resume evidence to prepare a cover note for a specific job.</p></div>
+    <div class="flow-actions"><a class="button" href="#inbox">Continue to Interview Inbox</a></div>
     <div id="application-empty" class="panel"><div class="section"><p>Select a job listing or complete a Job Match report to start a draft.</p><div class="buttons stage-actions"><a class="button" href="#jobs">Find a job</a></div></div></div>
     <div class="panel" id="application" hidden>
       <div class="heading"><h2 id="draft-caption"></h2></div>
@@ -138,11 +139,11 @@
         <p class="hint" id="draft-status" role="status"></p>
       </div>
     </div>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="inbox" hidden aria-labelledby="inbox-title">
     <div class="page-heading"><h1 id="inbox-title" tabindex="-1">Interview inbox</h1><p>Check a recruiter reply for a possible interview invitation.</p></div>
+    <div class="flow-actions"><a class="button" href="#interview">Continue to Interview Practice</a></div>
     <div class="panel"><div class="section">
       <label for="recruiter-message">Recruiter email or sample message</label><textarea id="recruiter-message" maxlength="5000" placeholder="Paste a message to check for an interview invitation."></textarea>
       <div class="buttons"><button id="check-message" type="button">Check for interview invitation</button><button id="load-message" class="secondary" type="button">Load sample email</button></div>
@@ -153,11 +154,11 @@
         <p id="gmail-status" class="hint" role="status"></p><ul id="inbox-matches"></ul>
       </details>
     </div></div>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="interview" hidden aria-labelledby="interview-title">
     <div class="page-heading"><h1 id="interview-title" tabindex="-1">Interview practice</h1><p>Practice answering a role-specific question and get feedback on your response.</p></div>
+    <div class="flow-actions"><a class="button" href="#chat">Continue to Career Chat</a></div>
     <div class="panel"><div class="section">
       <video id="camera" muted autoplay playsinline hidden></video>
       <p id="question">Generate a question to begin.</p>
@@ -167,11 +168,11 @@
       <p id="practice-status" class="hint" role="status"></p><div id="feedback-result"></div>
       <p class="hint">The camera is a local preview. Speech recognition may use your browser’s speech service. Typed answers also work.</p>
     </div></div>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="chat" hidden aria-labelledby="chat-title">
     <div class="page-heading"><h1 id="chat-title" tabindex="-1">Career Chat</h1><p>Ask your career agent to review your resume, find live openings, or explain your job match.</p></div>
+    <div class="flow-actions"><a class="button" href="#profile">Continue to Saved Profile and Jobs</a></div>
     <div class="panel">
       <div class="section">
         <div id="chat-history" class="chat-history" role="log" aria-label="Chat messages"></div>
@@ -184,11 +185,11 @@
         </form>
       </div>
     </div>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="profile" hidden aria-labelledby="account-title">
     <div class="page-heading"><h1 id="account-title" tabindex="-1">Saved profile and jobs</h1><p id="profile-note">Save a resume and your own candidate details for later visits.</p></div>
+    <div class="flow-actions"><a class="button" href="#upload">Finish and return to Resume</a></div>
     <div class="panel"><div class="section">
       <a id="signin" href="/signin-with-chatgpt?return_to=%2F%23profile" target="_top" hidden>Sign in to save your data</a>
       <form id="account-form" hidden>
@@ -198,7 +199,6 @@
       </form>
       <p id="account-status" class="hint" role="status"></p>
     </div></div>
-    <div class="flow-actions" data-flow-actions></div>
   </section>
 </main>
 </body>

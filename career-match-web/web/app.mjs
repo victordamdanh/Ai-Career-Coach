@@ -3,7 +3,7 @@ import { attachCareerSteps } from "./career-steps.mjs";
 import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs";
 import { attachChat } from "./chat.mjs";
 import { attachInbox } from "./inbox.mjs";
-import { nextInFlow } from "./workflow.mjs";
+import { canNavigateWorkflow } from "./workflow.mjs";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -19,20 +19,14 @@ let busy = false;
 const pages = new Map([...document.querySelectorAll("[data-page]")].map(page => [page.dataset.page, page]));
 const aliases = { "report-title": "match", "search-title": "jobs", "interviews": "interview", "method": "match" };
 const navigation = $("page-nav");
+const navigationLinks = [...navigation.querySelectorAll("a")].map(link => ({ link, page: link.hash.slice(1) }));
+const restoredPage = window.history.state?.careerStep;
 let currentPage;
 let lastCompanyQuery;
 let searchedQuery;
 let resumeReview;
 let invitationDetected = false;
 const completed = new Set();
-
-for (const [page, section] of pages) {
-  const next = nextInFlow(page);
-  const link = el("a", next ? "Continue to " + next.title : "Finish and return to Resume", "button");
-  link.href = "#" + (next?.id ?? "upload");
-  if (page === "preferences") link.id = "use-preferences";
-  section.querySelector("[data-flow-actions]").append(link);
-}
 
 function getWorkflow() {
   const steps = new Set(completed);
@@ -48,13 +42,26 @@ function getWorkflow() {
 function renderPage({ scroll = false } = {}) {
   const hash = window.location.hash.slice(1);
   const name = Object.hasOwn(aliases, hash) ? aliases[hash] : hash;
-  const next = pages.has(name) ? name : "upload";
+  const requested = pages.has(name) ? name : "upload";
+  const canRestore = currentPage === undefined && requested === restoredPage;
+  const next = canRestore || canNavigateWorkflow(currentPage, requested) ? requested : currentPage ?? "upload";
+  if (window.history.state?.careerStep !== next || next !== requested) {
+    window.history.replaceState({ ...window.history.state, careerStep: next }, "", next === requested ? window.location.href : "#" + next);
+  }
   const changed = currentPage !== next;
+  if (currentPage === "preferences" && next === "review") savePreferences();
   for (const [pageName, page] of pages) page.hidden = pageName !== next;
   navigation.hidden = next === "upload";
-  for (const link of navigation.querySelectorAll("a")) {
-    if (link.hash === "#" + next) link.setAttribute("aria-current", "page");
+  for (const { link, page } of navigationLinks) {
+    if (page === next) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
+    if (canNavigateWorkflow(next, page)) {
+      link.href = "#" + page;
+      link.removeAttribute("aria-disabled");
+    } else {
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
+    }
   }
   if (changed && currentPage === "interview") stopInterview();
   currentPage = next;
@@ -71,7 +78,7 @@ function renderPage({ scroll = false } = {}) {
     window.scrollTo(0, 0);
     heading.focus({ preventScroll: true });
   }
-  if (hash === "method") document.querySelector(".method").open = true;
+  if (hash === "method" && next === "match") document.querySelector(".method").open = true;
 }
 
 function goTo(page) {
@@ -510,6 +517,17 @@ function setResume(text) {
 
 for (const field of [$("role"), $("target-description")]) field.addEventListener("input", resetResumeReview);
 
+function savePreferences() {
+  $("query").value = [$("role").value, $("place").value, $("level").value].filter(Boolean).join(" ").slice(0, 100);
+  completed.add("preferences");
+  const description = $("target-description").value.trim();
+  if (!busy && description && description !== job.value) {
+    select.value = "";
+    chooseSample();
+    job.value = description;
+  }
+}
+
 function recordInboxCheck(invited) {
   completed.add("inbox");
   invitationDetected = invited;
@@ -517,15 +535,6 @@ function recordInboxCheck(invited) {
 
 const stopInterview = attachCareerSteps({
   $, status, el, browserModel, onResume: setResume,
-  onPreferences(description, query) {
-    $("query").value = query;
-    completed.add("preferences");
-    if (!busy && description && description !== job.value) {
-      select.value = "";
-      chooseSample();
-      job.value = description;
-    }
-  },
   onReview(result) { resumeReview = result; },
   onInboxCheck: recordInboxCheck,
   getInterviewContext: () => ({

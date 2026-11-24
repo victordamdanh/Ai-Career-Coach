@@ -1,4 +1,4 @@
-import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=8daa16c052c6";
+import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=d1900fe296ec";
 
 export async function extractResume(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Use a resume file up to 5 MB.");
@@ -42,7 +42,7 @@ export function detectInvitation(text) {
 }
 
 export function attachCareerSteps({
-  $, status, el, browserModel, onResume, onPreferences,
+  $, status, el, browserModel, onResume,
   onReview, onInboxCheck, getInterviewContext, onInterviewFeedback,
 }) {
   let cameraStream;
@@ -66,10 +66,6 @@ export function attachCareerSteps({
     }
   });
   $("extracted").addEventListener("input", () => onResume($("extracted").value.slice(0, resumeLimit)));
-  $("use-preferences").addEventListener("click", () => {
-    const query = [$("role").value, $("place").value, $("level").value].filter(Boolean).join(" ").slice(0, 100);
-    onPreferences($("target-description").value.trim(), query);
-  });
 
   async function modelJson(statusId, prompt, input, maxTokens) {
     const generate = await browserModel(progress => status(statusId, "Downloading the model (" + progress + "%)…"));
