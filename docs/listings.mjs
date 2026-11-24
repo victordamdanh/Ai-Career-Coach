@@ -1,4 +1,4 @@
-import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget } from "./job-preferences.mjs?v=ba1adc8967a0";
+import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget, states } from "./job-preferences.mjs?v=f95502689cbe";
 
 export const companyBoards = {
   anthropic: "Anthropic", airbnb: "Airbnb", cloudflare: "Cloudflare", databricks: "Databricks",
@@ -109,8 +109,15 @@ function matchesTitle(title, role) {
   return words.length > 1 && words.every(word => title.includes(" " + word + " "));
 }
 
+const stateNames = Object.entries(states);
+function remoteOrUS(location) {
+  return matchesJobLocation("Remote", location) || /\b(?:US|USA|U\.S\.|United States)\b/i.test(location) ||
+    stateNames.some(([code, name]) => matchesJobLocation(code, location) || matchesJobLocation(name, location));
+}
+
 function meetsPreferences(listing, place, level, targetPay) {
-  return matchesJobLocation(place, listing.location) &&
+  const placeOk = typeof place === "function" ? place(listing.location) : matchesJobLocation(place, listing.location);
+  return placeOk &&
     matchesJobLevel(level, listing.title + " " + (listing.seniority || "")) &&
     matchesAdvertisedPay(targetPay, listing.salary);
 }
@@ -203,11 +210,20 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
   }
   // Keep the chosen filters when anything matches them. If nothing does, relax the
   // location first, then level and pay, and report which filters were relaxed.
+  // Remote and U.S. openings come before worldwide ones.
   const tiers = [{ place, level, targetPay, relaxed: [] }];
-  if (place) tiers.push({ place: "", level, targetPay, relaxed: ["location"] });
-  if (level || targetPay) tiers.push({ place: "", level: "", targetPay: undefined, relaxed: [...(place ? ["location"] : []), ...(level ? ["level"] : []), ...(targetPay ? ["salary"] : [])] });
+  const loosened = [...(place ? ["location"] : []), ...(level ? ["level"] : []), ...(targetPay ? ["salary"] : [])];
+  if (place) {
+    tiers.push({ place: remoteOrUS, level, targetPay, relaxed: ["location"], widened: "remote or U.S." });
+    tiers.push({ place: "", level, targetPay, relaxed: ["location"], widened: "any location" });
+  }
+  if (level || targetPay) {
+    tiers.push({ place: remoteOrUS, level: "", targetPay: undefined, relaxed: loosened, widened: "remote or U.S." });
+    tiers.push({ place: "", level: "", targetPay: undefined, relaxed: loosened, widened: "any location" });
+  }
   let companies = new Map();
   let relaxed = [];
+  let widened;
   for (const tier of tiers) {
     companies = new Map();
     for (const { listing, rank } of candidates) {
@@ -221,13 +237,17 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
       companies.set(companyKey, openings);
     }
     relaxed = tier.relaxed;
+    widened = tier.widened;
     if (companies.size) break;
   }
-  if (!companies.size) relaxed = [];
+  if (!companies.size) {
+    relaxed = [];
+    widened = undefined;
+  }
   const matches = [...companies.values()].map(openings => {
     const rows = [...openings.values()].sort((a, b) => b.rank - a.rank || a.listing.title.localeCompare(b.listing.title));
     return { company: rows[0].listing.company, jobs: rows.map(row => row.listing), rank: rows[0].rank, total: rows.length };
   });
   matches.sort((a, b) => b.rank - a.rank || b.total - a.total || a.company.localeCompare(b.company));
-  return { matches, checked, unavailable, relaxed };
+  return { matches, checked, unavailable, relaxed, widened };
 }

@@ -350,7 +350,7 @@ async function searchResumeCompanies(refine) {
       aiWorked = false;
     }
     if (!aiWorked) firstResults = result;
-    const { matches, checked, unavailable, relaxed = [] } = result;
+    const { matches, checked, unavailable, relaxed = [], widened } = result;
     if (!checked.length) {
       status("matched-jobs-status", "The live sources did not respond. Use Refresh live jobs to retry.", true);
       return;
@@ -362,7 +362,7 @@ async function searchResumeCompanies(refine) {
     if (relaxed.length) {
       const relaxedLabel = relaxed.join(" and ");
       lines.push("No openings in these sources matched your " + relaxedLabel + " filter" + (relaxed.length > 1 ? "s" : "") +
-        (relaxed.includes("location") && filters.place ? " for " + filters.place : "") + ", so these results show other options. Check each posting’s location and requirements.");
+        (relaxed.includes("location") && filters.place ? " for " + filters.place : "") + ", so these results show " + (widened === "remote or U.S." ? "remote and U.S. openings" : "openings in other locations") + ". Check each posting’s location and requirements.");
     } else if (filters.place) lines.push("Location filter applied for " + filters.place + ".");
     if (!matches.length) lines.push("Try another job title or adjust your level or pay preferences.");
     if (unavailable.length) lines.push("Couldn’t check " + unavailable.join(", ") + ".");
