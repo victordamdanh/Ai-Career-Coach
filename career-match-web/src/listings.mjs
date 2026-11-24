@@ -27,7 +27,12 @@ export function jobText(html) {
 function excerpt(description) {
   if (description.length <= 2900) return description;
   const headings = /(?:^|\n)\s*(?:what you(?:’|'| wi)ll (?:bring|need)|minimum qualifications|required qualifications|requirements|what we(?:’|'| a)re looking for|about you|qualifications|desired skills)(?:\s|:|$)/i;
-  const position = description.search(headings);
+  // Short headings that only count when they stand alone on their line, e.g. "Experience:".
+  const lineHeadings = /(?:^|\n)\s*(?:experience|skills|basic qualifications|preferred qualifications|who you are|you have|must haves?|skills (?:and|&) experience|experience (?:and|&) skills)\s*:?\s*(?=\n|$)/i;
+  const duties = /(?:^|\n)\s*(?:responsibilities|what you(?:’|'| wi)ll do|the role|the opportunity|key responsibilities|about the role)\s*:?\s*(?=\n|$)/i;
+  const found = [description.search(headings), description.search(lineHeadings)].filter(position => position >= 0);
+  // Without a qualifications heading, skip the company introduction and start at the duties.
+  const position = found.length ? Math.min(...found) : description.search(duties);
   return position >= 0 ? description.slice(position, position + 2900).trim() : description.slice(0, 2900).trim();
 }
 

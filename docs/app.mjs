@@ -1,13 +1,13 @@
-import { createClassroomRequest } from "./request.mjs?v=f95502689cbe";
+import { createClassroomRequest } from "./request.mjs?v=6ca906754c4e";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=f95502689cbe";
-import { attachCareerSteps } from "./career-steps.mjs?v=f95502689cbe";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=f95502689cbe";
-import { attachChat } from "./chat.mjs?v=f95502689cbe";
-import { attachInbox } from "./inbox.mjs?v=f95502689cbe";
-import { canNavigateWorkflow } from "./workflow.mjs?v=f95502689cbe";
-import { attachPreferencePickers } from "./preference-pickers.mjs?v=f95502689cbe";
-import { draftFromEvidence } from "./match-evidence.mjs?v=f95502689cbe";
+import { browserModel, createAgent } from "./agent.mjs?v=6ca906754c4e";
+import { attachCareerSteps } from "./career-steps.mjs?v=6ca906754c4e";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=6ca906754c4e";
+import { attachChat } from "./chat.mjs?v=6ca906754c4e";
+import { attachInbox } from "./inbox.mjs?v=6ca906754c4e";
+import { canNavigateWorkflow } from "./workflow.mjs?v=6ca906754c4e";
+import { attachPreferencePickers } from "./preference-pickers.mjs?v=6ca906754c4e";
+import { draftFromEvidence } from "./match-evidence.mjs?v=6ca906754c4e";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
