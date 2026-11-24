@@ -118,11 +118,17 @@ export async function browserModel(progress, { fast = false } = {}) {
 
   function generate(system, prompt, input, { maxTokens = 750, onPartial } = {}) {
     return enqueueBrowserTask(() => withModel(async engine => {
-      const options = {
-        messages: [{ role: "system", content: system }, { role: "user", content: prompt + "\nInput JSON:\n" + JSON.stringify(input) }],
-        temperature: 0.1,
-        max_tokens: maxTokens,
-      };
+      const messages = [{ role: "system", content: system }];
+      if (onPartial) {
+        messages[0].content += "\n" + prompt;
+        messages.push(...input.messages.map(({ role, text }) => ({ role, content: text })));
+        if (input.context) {
+          messages.at(-1).content += "\n\nOptional reference details:\n" + JSON.stringify(input.context);
+        }
+      } else {
+        messages.push({ role: "user", content: prompt + "\nInput JSON:\n" + JSON.stringify(input) });
+      }
+      const options = { messages, temperature: 0.1, max_tokens: maxTokens };
       if (onPartial) {
         let text = "";
         onPartial("");

@@ -1,9 +1,9 @@
-import { createClassroomRequest } from "./request.mjs?v=9b389acb2ce7";
+import { createClassroomRequest } from "./request.mjs?v=e6cefbb70266";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=9b389acb2ce7";
-import { attachCareerSteps } from "./career-steps.mjs?v=9b389acb2ce7";
-import { attachChat } from "./chat.mjs?v=9b389acb2ce7";
-import { attachInbox } from "./inbox.mjs?v=9b389acb2ce7";
+import { browserModel, createAgent } from "./agent.mjs?v=e6cefbb70266";
+import { attachCareerSteps } from "./career-steps.mjs?v=e6cefbb70266";
+import { attachChat } from "./chat.mjs?v=e6cefbb70266";
+import { attachInbox } from "./inbox.mjs?v=e6cefbb70266";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
