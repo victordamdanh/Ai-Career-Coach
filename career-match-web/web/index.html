@@ -38,9 +38,7 @@
         </label>
         <details id="extraction" hidden><summary>Review or edit extracted text</summary><textarea id="extracted" rows="6" maxlength="14000" aria-label="Extracted resume text"></textarea></details>
         <p id="upload-status" class="hint" role="status"></p>
-        <div class="buttons upload-actions">
-          <a class="button" href="#preferences">Continue to job preferences</a>
-        </div>
+        <div class="flow-actions" data-flow-actions></div>
         <p id="edition-note" class="hint">File extraction runs in your browser.</p>
       </div>
     </section>
@@ -69,7 +67,7 @@
       <label>Target salary range (USD)<select id="pay"><option value="">Any range</option><option>Under $60,000</option><option>$60,000–$89,999</option><option>$90,000–$119,999</option><option>$120,000+</option></select></label>
       <label class="full-width">Target job description<textarea id="target-description" maxlength="3000" placeholder="Optional qualifications to compare"></textarea></label>
       <p class="hint full-width">Check pay in the official posting when the public board omits it.</p>
-      <div class="buttons full-width"><button id="use-preferences" type="button">Continue with these preferences</button><a class="button secondary" href="#review">Review resume</a></div>
+      <div class="flow-actions full-width" data-flow-actions></div>
     </div></div>
   </section>
 
@@ -80,6 +78,7 @@
       <div class="buttons"><button id="analyze-resume" type="button">Score my resume</button><button id="review-ai" class="secondary" type="button">Get AI feedback</button><a class="button secondary" href="#upload">Edit or upload resume</a></div>
       <p id="review-status" class="hint" role="status"></p><div id="resume-analysis"></div><div id="review-ai-result"></div>
     </div></div>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="jobs" hidden aria-labelledby="search-title">
@@ -96,6 +95,7 @@
       </details>
       <p id="search-status" class="hint" role="status"></p><div id="listings"></div>
     </div></div>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="match" hidden aria-labelledby="match-title">
@@ -115,22 +115,22 @@
       <section class="panel report" aria-labelledby="report-title" aria-busy="false">
         <div class="heading report-head"><div><h2 id="report-title">Match report</h2><p id="mode">Qualification alignment</p></div><div id="score" class="score" aria-label="Match score">—</div></div>
         <div class="section" id="result"><p class="empty">Your score, supporting evidence, and five next steps will appear here.</p></div>
-        <div id="application-next" class="section" hidden><a class="button secondary" href="#application">Open application draft</a></div>
       </section>
     </div>
     <details class="method"><summary>How job-fit scoring works</summary>
       <p>Required qualifications count twice as much as preferred qualifications. A match earns full credit, partial evidence earns half credit, and a gap earns zero.</p>
       <p>The score estimates qualification alignment. Check eligibility and application requirements in the official posting.</p>
     </details>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="application" hidden aria-labelledby="draft-title">
     <div class="page-heading"><h1 id="draft-title" tabindex="-1">Application draft</h1><p>Use verified resume evidence to prepare a cover note for a specific job.</p></div>
-    <div id="application-empty" class="panel"><div class="section"><p>Choose a job listing to start an application draft.</p><div class="buttons stage-actions"><a class="button" href="#jobs">Find a job</a></div></div></div>
+    <div id="application-empty" class="panel"><div class="section"><p>Select a job listing or complete a Job Match report to start a draft.</p><div class="buttons stage-actions"><a class="button" href="#jobs">Find a job</a></div></div></div>
     <div class="panel" id="application" hidden>
       <div class="heading"><h2 id="draft-caption"></h2></div>
       <div class="section">
-        <p id="draft-instructions" class="hint">Run a live match to prepare an AI draft. <a href="#match">Go to job match</a></p>
+        <p id="draft-instructions" class="hint">Run a job match to prepare an AI draft. <a href="#match">Go to job match</a></p>
         <label for="draft">Review and edit your draft</label>
         <textarea id="draft" rows="7" placeholder="Compare a resume with this job, then use the evidence to prepare a draft."></textarea>
         <div class="buttons"><button id="draft-button" type="button" disabled>Prepare draft</button><button id="copy" type="button" class="secondary">Copy draft</button><button id="packet" type="button" class="secondary">Copy form helper packet</button><a id="employer" class="button secondary" target="_blank" rel="noopener noreferrer">Open employer application</a></div>
@@ -138,13 +138,14 @@
         <p class="hint" id="draft-status" role="status"></p>
       </div>
     </div>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="inbox" hidden aria-labelledby="inbox-title">
     <div class="page-heading"><h1 id="inbox-title" tabindex="-1">Interview inbox</h1><p>Check a recruiter reply for a possible interview invitation.</p></div>
     <div class="panel"><div class="section">
       <label for="recruiter-message">Recruiter email or sample message</label><textarea id="recruiter-message" maxlength="5000" placeholder="Paste a message to check for an interview invitation."></textarea>
-      <div class="buttons"><button id="check-message" type="button">Check for interview invitation</button><button id="load-message" class="secondary" type="button">Load sample email</button><a id="practice-next" class="button secondary" href="#interview" hidden>Practice for the interview</a></div>
+      <div class="buttons"><button id="check-message" type="button">Check for interview invitation</button><button id="load-message" class="secondary" type="button">Load sample email</button></div>
       <p id="mail-status" class="hint" role="status"></p>
       <details><summary>Connect Gmail for read-only inbox checks</summary>
         <form id="gmail"><label for="gmail-client">Google OAuth web client ID</label><input id="gmail-client" maxlength="180" placeholder="OAuth client ID for this site"><div class="buttons"><button>Connect Gmail</button><button id="scan-inbox" type="button" class="secondary" disabled>Check recent messages</button><button id="disconnect-inbox" type="button" class="secondary">Disconnect</button></div></form>
@@ -152,6 +153,7 @@
         <p id="gmail-status" class="hint" role="status"></p><ul id="inbox-matches"></ul>
       </details>
     </div></div>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="interview" hidden aria-labelledby="interview-title">
@@ -165,6 +167,7 @@
       <p id="practice-status" class="hint" role="status"></p><div id="feedback-result"></div>
       <p class="hint">The camera is a local preview. Speech recognition may use your browser’s speech service. Typed answers also work.</p>
     </div></div>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="chat" hidden aria-labelledby="chat-title">
@@ -181,6 +184,7 @@
         </form>
       </div>
     </div>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 
   <section data-page="profile" hidden aria-labelledby="account-title">
@@ -194,6 +198,7 @@
       </form>
       <p id="account-status" class="hint" role="status"></p>
     </div></div>
+    <div class="flow-actions" data-flow-actions></div>
   </section>
 </main>
 </body>

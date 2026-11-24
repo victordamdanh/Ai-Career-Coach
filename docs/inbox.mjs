@@ -1,4 +1,4 @@
-import { detectInvitation } from "./career-steps.mjs?v=c066b94ab201";
+import { detectInvitation } from "./career-steps.mjs?v=8daa16c052c6";
 
 const scriptUrl = "https://accounts.google.com/gsi/client";
 const scope = "https://www.googleapis.com/auth/gmail.readonly";
@@ -26,7 +26,7 @@ async function gmail(path) {
   return response.json();
 }
 
-export function attachInbox({ $, status, el }) {
+export function attachInbox({ $, status, el, onCheck }) {
   const form = $("gmail");
   const scan = $("scan-inbox");
   const display = $("inbox-matches");
@@ -59,6 +59,7 @@ export function attachInbox({ $, status, el }) {
       const { messages = [] } = await gmail("messages?" + params);
       const details = await Promise.all(messages.map(({ id }) => gmail("messages/" + encodeURIComponent(id) + "?format=full")));
       const matches = details.filter(message => detectInvitation(message.snippet ?? ""));
+      onCheck?.(matches.length > 0);
       status("gmail-status", matches.length ? matches.length + " possible interview invitation(s). Verify them in Gmail." : "No invitations detected in the message previews searched.");
       for (const message of matches) {
         const item = el("li");

@@ -1,4 +1,5 @@
-import { resumeProfile, reviewResume } from "./resume-review.mjs?v=c066b94ab201";
+import { resumeProfile, reviewResume } from "./resume-review.mjs?v=8daa16c052c6";
+import { workflowHelp } from "./workflow.mjs?v=8daa16c052c6";
 
 function chooseTool(question) {
   if (/\b(?:compare|fit|align|qualification|match report)\b/i.test(question) &&
@@ -17,7 +18,9 @@ function titleFromQuestion(question) {
 }
 
 export function createCareerChatAgent(request) {
-  return async (question, context) => {
+  return async (question, context, progress) => {
+    const guide = workflowHelp(question, progress);
+    if (guide) return guide;
     switch (chooseTool(question)) {
       case "resume": {
         if (!context?.resume || context.resume.trim().length < 20) return {
@@ -25,7 +28,7 @@ export function createCareerChatAgent(request) {
           summary: "No resume was included. The applicant can upload a resume and check Include my resume and job before asking for personalized review.",
           links: [{ text: "Upload a resume", href: "#upload" }],
         };
-        const report = reviewResume(context.resume, context.role);
+        const report = context.review ?? reviewResume(context.resume, context.job || context.role);
         return {
           label: "Resume review",
           summary: "Resume quality checklist scored " + report.total + "/100. " + report.criteria

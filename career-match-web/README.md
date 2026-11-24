@@ -16,7 +16,7 @@ Desktop Chrome or Edge with WebGPU is recommended for live inference. The first 
 
 The local and Worker builds use Gemini 3.5 Flash-Lite with Gemini 3.1 Flash-Lite as the backup for temporary provider errors. Set `GEMINI_API_KEY` in the backend environment before starting the server. The key stays server-side. On a hosted Worker, Gemini is available only to signed-in visitors through the trusted sign-in gateway. If Gemini is unavailable, the chat tries the on-device Qwen model and can switch to a smaller Qwen model if the primary browser model fails.
 
-The chat sends resume and job details only when **Include resume and job details** is checked. The agent can call the resume review, live job search, and current match report tools, then use their output to answer. Live job-search replies use the tool results directly so each link points to an official posting. Chat history stays in the current tab. The site uses only the resume you upload. The checked-in fictional resume is an evaluation fixture.
+The chat sends resume and job details only when **Include resume and job details** is checked. The agent can call the resume review, live job search, and current match report tools, then use their output to answer. Live job-search replies use the tool results directly so each link points to an official posting. Chat history stays in the current tab. The site uses only the resume you upload. The Continue controls follow the same ten-step workflow as Career Chat’s guidance. The chat can point to your next incomplete step without reading your resume. Personal resume details still require the chat opt-in. The checked-in fictional resume is an evaluation fixture.
 
 ## How it works
 

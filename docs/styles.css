@@ -62,7 +62,7 @@ main{padding-bottom:64px}
 .file-zone{display:block;border:1px dashed #8faf9f;border-radius:10px;background:#f7faf6;padding:14px;font-size:.91rem}
 .file-zone input{border:0;background:transparent;padding:6px 0 0;margin:0;min-height:0}
 input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6px;background:white;color:var(--green);padding:7px 11px;font:inherit;font-weight:700;margin-right:9px}
-.upload-actions,.stage-actions{margin-top:12px}
+.stage-actions{margin-top:12px}
 #edition-note{margin-top:10px;margin-bottom:0}
 .features{padding-top:28px}
 .features>p{margin-top:5px;color:var(--muted)}
@@ -81,7 +81,7 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
 .preferences-fields input,.preferences-fields select,.preferences-fields textarea,.account-fields input{margin-top:4px}
 .method{margin-top:17px}
 .method p{color:var(--muted);font-size:.91rem;margin-top:7px;max-width:75ch}
-#application-next{padding-top:0}
+.flow-actions{display:flex;justify-content:flex-end;margin-top:16px}
 #saved-jobs:empty{display:none}
 #camera{width:min(440px,100%);border-radius:10px;background:#132620}
 #question{margin:8px 0;font-weight:660}

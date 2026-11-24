@@ -41,7 +41,10 @@ export function detectInvitation(text) {
   return /\binterview\b/.test(sample) && /\b(invite|invitation|schedule|availability|available|confirm|booking)\b/.test(sample);
 }
 
-export function attachCareerSteps({ $, status, el, browserModel, onResume, onPreferences }) {
+export function attachCareerSteps({
+  $, status, el, browserModel, onResume, onPreferences,
+  onReview, onInboxCheck, getInterviewContext, onInterviewFeedback,
+}) {
   let cameraStream;
   let recognition;
   let question = "";
@@ -92,6 +95,7 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
       rows.append(row);
     }
     panel.append(rows);
+    onReview?.(report);
     status("review-status", "Score ready.");
     return { resume, focus };
   }
@@ -135,10 +139,10 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
     if (!text) return status("mail-status", "Enter a recruiter email first.", true);
     const invited = detectInvitation(text);
     status("mail-status", invited ? "Possible interview invitation detected. Verify the sender and any dates in the original message." : "No interview invitation detected. Review the original message if it is ambiguous.");
-    $("practice-next").hidden = !invited;
+    onInboxCheck?.(invited);
   });
   $("make-question").addEventListener("click", () => interviewTask(async () => {
-    const result = await modelJson("practice-status", 'Generate one realistic first-round interview question for this role. Use the supplied job description if available. Return JSON with one short "question" string.', { role: $("role").value, job: $("job").value.slice(0, 1400) }, 130);
+    const result = await modelJson("practice-status", 'Generate one realistic first-round interview question for this role. Use the selected job, and consider a qualification from the match report if available. Treat an invitation flag as tentative. Return JSON with one short "question" string.', getInterviewContext(), 130);
     if (typeof result.question !== "string" || !result.question.trim() || result.question.length > 500) throw new Error("The model did not return a valid question.");
     question = result.question;
     $("question").textContent = question;
@@ -158,6 +162,7 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
     result.feedback.forEach(item => notes.append(el("li", item)));
     $("feedback-result").replaceChildren(el("h3", "Practice feedback · " + total + "/100"),
       el("p", result.criteria.map(item => item.name + " " + item.points + "/20").join(" · ")), notes);
+    onInterviewFeedback?.();
     status("practice-status", "Feedback ready.");
   }));
 

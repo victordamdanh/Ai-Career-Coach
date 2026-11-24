@@ -58,3 +58,16 @@ test("Career Chat answers a live job lookup directly with official links", async
   assert.equal(answer.children[2].children[0].children[0].href, url);
   assert.equal(field("chat-submit").disabled, false);
 });
+
+test("Career Chat links to the next incomplete or explicitly requested workflow step", async () => {
+  const agent = createCareerChatAgent(async () => assert.fail("Workflow guidance uses the shared step order"));
+  const progress = { active: "chat", completed: ["upload", "preferences", "review", "chat"] };
+  const next = await agent("What should I do next?", undefined, progress);
+  assert.equal(next.direct, true);
+  assert.deepEqual(next.links, [{ text: "Open Find Jobs", href: "#jobs" }]);
+  assert.match(next.summary, /connected company boards/);
+  const explicit = await agent("What comes after Interview Inbox?", undefined, progress);
+  assert.equal(explicit.links[0].href, "#interview");
+  const overview = await agent("Show the career flow", undefined, progress);
+  assert.match(overview.summary, /Resume → Preferences → Resume Review → Find Jobs → Job Match → Application Draft → Interview Inbox → Interview Practice → Career Chat → Saved Profile and Jobs/);
+});
