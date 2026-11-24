@@ -16,7 +16,7 @@ export function createAgent(generate, scoreTool) {
     const input = { job: toInput(sources.job), resume: toInput(sources.resume) };
     let rows = [];
     update("compare", "Checking qualifications against your resume");
-    for (let attempt = 0; attempt < 2 && !rows.length; attempt++) {
+    for (let attempt = 0; generate && attempt < 2 && !rows.length; attempt++) {
       if (attempt) update("compare", "Checking the source references again");
       let raw;
       try {

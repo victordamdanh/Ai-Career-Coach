@@ -36,6 +36,7 @@ button:disabled{opacity:.53;cursor:default}
 .hint:empty{display:none}
 .error{color:#8b2a24}
 .report-head{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.posting-source{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:7px;background:#f1f5f1}
 .score{display:grid;place-items:center;min-width:55px;min-height:48px;border-radius:8px;background:#e6f0e8;color:var(--green);font-size:1.4rem;font-weight:750}
 .empty{padding:20px;border:1px dashed #cbd8ce;border-radius:8px;color:var(--muted)}
 details{border-top:1px solid var(--line);padding:8px 0}

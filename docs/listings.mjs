@@ -77,9 +77,10 @@ export async function fetchListings(company, phrase, fetcher = fetch) {
 
 export async function fetchListing(company, id, fetcher = fetch) {
   if (!/^\d+$/.test(id)) throw new Error("Choose a valid listing.");
-  const response = await fetcher(boardUrl(company) + "/" + id, { signal: AbortSignal.timeout(9000) });
+  const response = await fetcher(boardUrl(company) + "/" + id, { cache: "no-cache", signal: AbortSignal.timeout(9000) });
   if (!response.ok) throw new Error("The posting is no longer available.");
   const listing = toListing(await response.json(), company);
+  if (listing && String(listing.id) !== String(id)) throw new Error("The company board returned a different posting.");
   if (!listing?.description) throw new Error("The posting has no readable description.");
   return listing;
 }

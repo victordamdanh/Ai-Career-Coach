@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { api, score } from "../src/api.mjs";
 import { account } from "../src/account.mjs";
-import { fetchListings, jobText } from "../src/listings.mjs";
+import { fetchListing, fetchListings, jobText } from "../src/listings.mjs";
 import { localDatabase } from "../scripts/sqlite.mjs";
 import { createAgent } from "../web/agent.mjs";
 import { detectInvitation } from "../web/career-steps.mjs";
@@ -100,6 +100,34 @@ test("normalizes and filters Greenhouse listings, keeping the official URL", asy
   assert.equal(result.total, 1);
   assert.equal(result.jobs[0].url, job.absolute_url);
   assert.equal(result.jobs[0].excerpt, "Python & SQL");
+});
+
+test("quick matching uses the selected posting's current qualifications and rejects an unavailable job", async () => {
+  const url = "https://job-boards.greenhouse.io/figma/jobs/42";
+  let current = "Experience writing SQL queries.";
+  const fetcher = async (endpoint, options) => {
+    assert.equal(endpoint, "https://boards-api.greenhouse.io/v1/boards/figma/jobs/42");
+    assert.equal(options.cache, "no-cache");
+    if (!current) return new Response(null, { status: 404 });
+    return Response.json({ id: 42, title: "Data Analyst", absolute_url: url, content: "<p>Required qualifications</p><p>" + current + "</p>" });
+  };
+  const match = createAgent(undefined, score);
+  const resume = "Wrote SQL queries for weekly reports.";
+  const first = await fetchListing("figma", "42", fetcher);
+  const initial = await match(resume, first.excerpt, () => {});
+  assert.equal(first.url, url);
+  assert.equal(initial.mode, "source");
+  assert.equal(initial.rows[0].jobQuote, current);
+  assert.equal(initial.rows[0].evidence, resume);
+
+  current = "Experience creating animations in Blender.";
+  const updated = await fetchListing("figma", "42", fetcher);
+  const latest = await match(resume, updated.excerpt, () => {});
+  assert.equal(latest.rows[0].jobQuote, current);
+  assert.equal(latest.rows[0].status, "gap");
+
+  current = "";
+  await assert.rejects(fetchListing("figma", "42", fetcher), /no longer available/);
 });
 
 test("SQLite records are scoped to each candidate and can be deleted", async () => {

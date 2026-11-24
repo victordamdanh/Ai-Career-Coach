@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
-<link rel="stylesheet" href="./styles.css?v=d1900fe296ec">
-<script type="module" src="./app.mjs?v=d1900fe296ec"></script>
+<link rel="stylesheet" href="./styles.css?v=e5cd960f1ae4">
+<script type="module" src="./app.mjs?v=e5cd960f1ae4"></script>
 </head>
 <body>
 <header>
@@ -82,7 +82,7 @@
   </section>
 
   <section data-page="jobs" hidden aria-labelledby="search-title">
-    <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse public company career boards. Open a job title to view the official posting, or compare the role with your resume.</p></div>
+    <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse live company listings and choose a job to match its qualifications against your resume.</p></div>
     <div class="flow-actions"><a class="button" href="#match">Continue to Job Match</a></div>
     <div class="panel"><div class="section">
       <div class="buttons"><button id="find-resume-jobs" type="button">Find companies from my resume</button><button id="ai-job-search" type="button" class="secondary">Refine with AI</button></div>
@@ -105,11 +105,12 @@
       <section class="panel" aria-labelledby="compare-title">
         <div class="heading"><h2 id="compare-title">Compare documents</h2><p>Use a live listing, a sample, or your own text.</p></div>
         <form class="section" id="compare">
-          <label for="samples">Sample posting</label><select id="samples" disabled></select><p id="source" class="hint"></p>
+          <p id="source" class="posting-source" hidden></p>
+          <label for="samples">Sample posting</label><select id="samples" disabled></select>
           <label for="resume">Resume</label><textarea id="resume" readonly maxlength="14000" placeholder="Upload your resume to fill this field."></textarea>
           <label for="job">Job description</label><textarea id="job" required maxlength="3000" placeholder="Paste the qualifications you want to compare."></textarea>
-          <div class="buttons"><button id="live" disabled>Run live AI</button><a href="#upload" class="button secondary">Upload or edit resume</a></div>
-          <p class="hint">Job Match checks excerpts from your resume against the posting. Live AI uses WebGPU. A source-based comparison is available when the model can’t complete the match.</p>
+          <div class="buttons"><button id="quick-match" type="submit">Quick match</button><button id="live" type="submit" class="secondary">Run live AI</button><a href="#upload" class="button secondary">Upload or edit resume</a></div>
+          <p class="hint">Quick match checks the wording in your resume and the posting. Run live AI for a model-assisted comparison on a WebGPU-enabled browser.</p>
           <p id="status" role="status" class="hint"></p>
         </form>
       </section>

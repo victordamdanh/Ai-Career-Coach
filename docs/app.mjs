@@ -1,16 +1,17 @@
-import { createClassroomRequest } from "./request.mjs?v=d1900fe296ec";
+import { createClassroomRequest } from "./request.mjs?v=e5cd960f1ae4";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=d1900fe296ec";
-import { attachCareerSteps } from "./career-steps.mjs?v=d1900fe296ec";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=d1900fe296ec";
-import { attachChat } from "./chat.mjs?v=d1900fe296ec";
-import { attachInbox } from "./inbox.mjs?v=d1900fe296ec";
-import { canNavigateWorkflow } from "./workflow.mjs?v=d1900fe296ec";
+import { browserModel, createAgent } from "./agent.mjs?v=e5cd960f1ae4";
+import { attachCareerSteps } from "./career-steps.mjs?v=e5cd960f1ae4";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=e5cd960f1ae4";
+import { attachChat } from "./chat.mjs?v=e5cd960f1ae4";
+import { attachInbox } from "./inbox.mjs?v=e5cd960f1ae4";
+import { canNavigateWorkflow } from "./workflow.mjs?v=e5cd960f1ae4";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
 const resume = $("resume");
 const job = $("job");
+const quick = $("quick-match");
 const live = $("live");
 const report = document.querySelector(".report");
 const body = $("result");
@@ -24,6 +25,7 @@ const navigation = $("page-nav");
 const navigationLinks = [...navigation.querySelectorAll("a")].map(link => ({ link, page: link.hash.slice(1) }));
 const restoredPage = window.history.state?.careerStep;
 let currentPage;
+let listingSelection;
 let lastCompanyQuery;
 let searchedQuery;
 let resumeReview;
@@ -52,6 +54,7 @@ function renderPage({ scroll = false } = {}) {
   }
   const changed = currentPage !== next;
   if (currentPage === "preferences" && next === "review") savePreferences();
+  if (changed && currentPage === "jobs") listingSelection = undefined;
   for (const [pageName, page] of pages) page.hidden = pageName !== next;
   navigation.hidden = next === "upload";
   for (const { link, page } of navigationLinks) {
@@ -81,6 +84,7 @@ function renderPage({ scroll = false } = {}) {
     heading.focus({ preventScroll: true });
   }
   if (hash === "method" && next === "match") document.querySelector(".method").open = true;
+  if (changed && next === "match" && target && !lastResult) compareResume();
 }
 
 function goTo(page) {
@@ -117,7 +121,8 @@ function sample() {
   return dataset?.jobs.find(item => item.id === select.value);
 }
 function updateButtons() {
-  live.disabled = busy || !dataset;
+  quick.disabled = live.disabled = busy;
+  select.disabled = busy || !dataset;
   const draftAvailable = !!target || !!lastResult;
   $("application").hidden = !draftAvailable;
   $("application-empty").hidden = draftAvailable;
@@ -174,40 +179,55 @@ function listingCard(listing) {
   const summary = el("summary", "Job details");
   const description = el("p", listing.description, "list-description");
   const actions = el("div", "", "buttons");
-  const compare = el("button", "Compare to my resume");
+  const compare = el("button", "Match this job to my resume");
+  const matchStatus = el("p", "", "hint");
+  matchStatus.setAttribute("role", "status");
   compare.type = "button";
   let pending;
-  async function loadDescription() {
-    if (listing.description) return listing;
-    if (!pending) {
-      description.textContent = "Loading the official job description…";
-      const params = new URLSearchParams({ company: listing.companyId, id: listing.id });
-      pending = request("listing?" + params).then(details => {
-        listing = details;
-        description.textContent = details.description;
-        return details;
-      }).catch(error => {
-        description.textContent = error.message;
-        pending = undefined;
-        throw error;
-      });
-    }
+  async function loadDescription(refresh = false) {
+    if (pending) return pending;
+    if (listing.description && !refresh) return listing;
+    description.textContent = "Loading the official job description…";
+    const params = new URLSearchParams({ company: listing.companyId, id: listing.id });
+    pending = request("listing?" + params).then(posting => {
+      listing = posting;
+      title.href = posting.url;
+      title.textContent = posting.title;
+      description.textContent = posting.description;
+      return posting;
+    }).catch(error => {
+      description.textContent = error.message;
+      throw error;
+    }).finally(() => { pending = undefined; });
     return pending;
   }
   details.addEventListener("toggle", () => {
     if (details.open) loadDescription().catch(() => {});
   });
   compare.addEventListener("click", async () => {
+    if (busy) {
+      matchStatus.textContent = "A comparison is running. Try again when it finishes.";
+      return;
+    }
+    const selection = Symbol();
+    listingSelection = selection;
     compare.disabled = true;
+    matchStatus.classList.remove("error");
+    matchStatus.textContent = "Checking the current posting…";
     try {
-      const details = await loadDescription();
-      if (currentPage === "jobs") chooseListing(details);
-    } catch { /* The job card displays the retrieval error and official link. */ }
-    finally { compare.disabled = false; }
+      const posting = await loadDescription(true);
+      matchStatus.textContent = "";
+      if (listingSelection === selection && currentPage === "jobs" && !busy) chooseListing(posting);
+    } catch (error) {
+      matchStatus.classList.add("error");
+      matchStatus.textContent = error.message;
+    } finally {
+      compare.disabled = false;
+    }
   });
   actions.append(compare);
   details.append(summary, description);
-  item.append(heading, el("p", listing.location, "hint"), details, actions);
+  item.append(heading, el("p", listing.location, "hint"), details, actions, matchStatus);
   return item;
 }
 
@@ -314,9 +334,10 @@ request("companies").then(companies => {
 }).catch(() => {});
 
 function chooseListing(listing) {
-  if (busy) return;
   select.value = "";
-  $("source").replaceChildren(officialLink(listing.url, listing.company + " career board"), " · Qualification excerpt");
+  const source = $("source");
+  source.replaceChildren(el("strong", listing.title + " · " + listing.company), officialLink(listing.url, "Open official posting"));
+  source.hidden = false;
   job.value = listing.excerpt;
   setTarget(listing);
   status("status");
@@ -325,9 +346,11 @@ function chooseListing(listing) {
 
 function chooseSample() {
   const entry = sample();
-  $("source").replaceChildren();
+  const source = $("source");
+  source.replaceChildren();
+  source.hidden = !entry;
   if (entry) {
-    $("source").append(officialLink(entry.url, entry.source), " · Selected duties and qualifications");
+    source.append(officialLink(entry.url, entry.source), "Selected duties and qualifications");
     job.value = entry.description;
   } else {
     job.value = "";
@@ -338,8 +361,12 @@ function chooseSample() {
 select.addEventListener("change", chooseSample);
 for (const field of [resume, job]) field.addEventListener("input", () => {
   if (field === resume) syncResumePreview();
-  if (field === job && target) setTarget(undefined);
-  clearReport();
+  if (field === job && (target || sample())) {
+    select.value = "";
+    $("source").hidden = true;
+    $("source").replaceChildren();
+    setTarget(undefined);
+  } else clearReport();
   status("status");
 });
 
@@ -370,7 +397,7 @@ function render(result, note) {
 async function run(task) {
   busy = true;
   updateButtons();
-  [select, resume, job].forEach(field => { field.disabled = true; });
+  [resume, job].forEach(field => { field.disabled = true; });
   report.setAttribute("aria-busy", "true");
   clearReport();
   try {
@@ -380,27 +407,37 @@ async function run(task) {
     status("status", error.message || "Unable to create the report.", true);
   } finally {
     busy = false;
-    [select, resume, job].forEach(field => { field.disabled = false; });
+    [resume, job].forEach(field => { field.disabled = false; });
     report.setAttribute("aria-busy", "false");
     updateButtons();
   }
 }
-$("compare").addEventListener("submit", event => {
-  event.preventDefault();
+function compareResume(useAI = false) {
+  if (busy) return;
   const resumeText = resume.value.trim();
   const jobText = job.value.trim();
-  if (resumeText.length < 20 || jobText.length < 20) {
-    status("status", "Upload your resume and add a job description before running a match.", true);
+  if (resumeText.length < 20) {
+    status("status", target ? "The live posting is loaded. Upload your resume to compare it." : "Upload your resume before running a match.", true);
+    return;
+  }
+  if (jobText.length < 20) {
+    status("status", "Choose a job from Find Jobs or enter a job description.", true);
     return;
   }
   run(async () => {
-    const generate = async (...args) => {
+    const generate = useAI ? async (...args) => {
       generator ??= await browserModel(progress => status("status", "Downloading the model (" + progress + "%)…"));
       return generator(...args);
-    };
+    } : undefined;
     const agent = createAgent(generate, rows => request("score", json("POST", rows)));
-    render(await agent(resumeExcerpt(resumeText, jobText, 2850), jobText, (_stage, detail) => status("status", detail)), sample()?.note);
+    const result = await agent(resumeExcerpt(resumeText, jobText, 2850), jobText, (_stage, detail) => status("status", detail));
+    if (resume.value.trim() !== resumeText || job.value.trim() !== jobText) throw new Error("Your resume or job description changed. Run the match again.");
+    render(result, sample()?.note);
   });
+}
+$("compare").addEventListener("submit", event => {
+  event.preventDefault();
+  compareResume(event.submitter === live);
 });
 
 $("draft-button").addEventListener("click", async () => {
@@ -585,7 +622,6 @@ try {
   const custom = el("option", "Use my own documents");
   custom.value = "";
   select.append(custom);
-  select.disabled = false;
   if (!target && !job.value) select.value = "";
   updateButtons();
 } catch (error) {

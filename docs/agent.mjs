@@ -1,4 +1,4 @@
-import { fallbackRows, matchActions, modelRows, sourceExcerpts } from "./match-evidence.mjs?v=d1900fe296ec";
+import { fallbackRows, matchActions, modelRows, sourceExcerpts } from "./match-evidence.mjs?v=e5cd960f1ae4";
 
 const FULL_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 const FAST_MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
@@ -16,7 +16,7 @@ export function createAgent(generate, scoreTool) {
     const input = { job: toInput(sources.job), resume: toInput(sources.resume) };
     let rows = [];
     update("compare", "Checking qualifications against your resume");
-    for (let attempt = 0; attempt < 2 && !rows.length; attempt++) {
+    for (let attempt = 0; generate && attempt < 2 && !rows.length; attempt++) {
       if (attempt) update("compare", "Checking the source references again");
       let raw;
       try {
