@@ -1,4 +1,4 @@
-import { resumeProfile } from "./resume-review.mjs?v=6ca906754c4e";
+import { resumeProfile } from "./resume-review.mjs?v=a2d241e93831";
 
 const categories = ["skills", "experience", "education", "certifications", "projects"];
 const statuses = ["match", "partial", "gap"];
@@ -7,6 +7,13 @@ const ignored = /\b(?:citizenship|us citizens?|u\.s\. citizens?|visa sponsorship
 const nonQualification = /^(?:about (?:us|the company|our company|the team)|salary|pay range|compensation|(?:we offer|our) benefits|apply (?:now|here)|how to apply|privacy notice)\b/i;
 const qualification = /\b(?:experience|skills?|proficien\w+|qualifications?|knowledge|familiar\w*|understanding|ability|able to|required|preferred|degree|certificat\w+|licen[cs]\w+|years?|develop\w*|build\w*|design\w*|analy[sz]\w*|manage\w*|collaborat\w+)\b/i;
 const generic = new Set("about ability able and apply are build built can company demonstrate demonstrated develop eligible experience familiar for from have knowledge must preferred proficient requirement required skill skills strong the their this through using with work years your".split(" "));
+
+const benefitsHeading = /^(?:benefits|perks|(?:our )?benefits (?:and|&) perks|what we offer|compensation|pay|salary|why join us)\b/i;
+function isHeading(line) {
+  const words = line.split(/\s+/).length;
+  if (/:\s*$/.test(line) && words <= 6) return true;
+  return words <= 5 && line.length < 40 && /[A-Z]/.test(line) && line === line.toUpperCase();
+}
 
 function selectWithinBudget(entries, size, limit) {
   const selected = [];
@@ -23,12 +30,20 @@ export function sourceExcerpts(resume, job) {
   function collect(text, prefix) {
     const entries = [];
     let priority = "required";
+    let skipping = false;
     for (const line of text.split(/\r?\n/)) {
       const clean = line.trim().replace(/^[•●▪*–—-]\s*/, "");
-      if (prefix === "J" && /^(?:(?:minimum|basic|required|preferred|desired|additional)\s+)?(?:qualifications|requirements|skills)\s*:?$/i.test(clean)) {
+      if (prefix === "J" && /^(?:(?:minimum|basic|required|preferred|desired|additional)\s+)?(?:qualifications|requirements|skills|experience)\s*:?$/i.test(clean)) {
         priority = /^(?:preferred|desired|additional)/i.test(clean) ? "preferred" : "required";
+        skipping = false;
         continue;
       }
+      // Section labels such as "Experience:" or "WORK EXPERIENCE" are not qualifications or evidence.
+      if (isHeading(clean)) {
+        if (prefix === "J") skipping = benefitsHeading.test(clean);
+        continue;
+      }
+      if (skipping) continue;
       if (prefix === "J" && (ignored.test(clean) || nonQualification.test(clean))) continue;
       for (const part of clean.split(/(?<=[.!?])\s+(?=[A-Z])|;\s+|\s+•\s*/)) {
         const end = part.slice(0, 241).lastIndexOf(" ");

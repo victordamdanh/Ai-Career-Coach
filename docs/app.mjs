@@ -1,13 +1,13 @@
-import { createClassroomRequest } from "./request.mjs?v=6ca906754c4e";
+import { createClassroomRequest } from "./request.mjs?v=a2d241e93831";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=6ca906754c4e";
-import { attachCareerSteps } from "./career-steps.mjs?v=6ca906754c4e";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=6ca906754c4e";
-import { attachChat } from "./chat.mjs?v=6ca906754c4e";
-import { attachInbox } from "./inbox.mjs?v=6ca906754c4e";
-import { canNavigateWorkflow } from "./workflow.mjs?v=6ca906754c4e";
-import { attachPreferencePickers } from "./preference-pickers.mjs?v=6ca906754c4e";
-import { draftFromEvidence } from "./match-evidence.mjs?v=6ca906754c4e";
+import { browserModel, createAgent } from "./agent.mjs?v=a2d241e93831";
+import { attachCareerSteps } from "./career-steps.mjs?v=a2d241e93831";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=a2d241e93831";
+import { attachChat } from "./chat.mjs?v=a2d241e93831";
+import { attachInbox } from "./inbox.mjs?v=a2d241e93831";
+import { canNavigateWorkflow } from "./workflow.mjs?v=a2d241e93831";
+import { attachPreferencePickers } from "./preference-pickers.mjs?v=a2d241e93831";
+import { draftFromEvidence } from "./match-evidence.mjs?v=a2d241e93831";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
