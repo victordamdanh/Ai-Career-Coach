@@ -1,65 +1,85 @@
-# AI Career Coach classroom guide
+# AI Career Match
 
-A student deciding whether to apply for an internship can use Job Match Analyzer to answer two questions. Which requirements can I already demonstrate? What should I work on next? Use one fictional student and one posting throughout the five-minute presentation so the audience can check the coach's reasoning.
+AI Career Match is a web app for students and early-career job seekers. Upload your resume, find current openings, compare your experience with a specific posting, and use that comparison to prepare your application and interview answers. Resume excerpts and job requirements carry through the workflow, so you can see which claims support a score, a draft, or a practice question.
 
-## Prepare before class
+[Open the web app](https://victordamdanh.github.io/Ai-Career-Coach/) · [Browse the web app source](https://github.com/victordamdanh/Ai-Career-Coach/tree/career-match-web-demo/career-match-web) · [Developer documentation](https://github.com/victordamdanh/Ai-Career-Coach/blob/career-match-web-demo/career-match-web/README.md)
 
-1. Open the [hosted coach](https://ai-career-coach-8jnrwtqi7drqqdrgai2f2d.streamlit.app/) and enter the classroom access code. Allow time for the server to wake up.
-2. Download Jordan-resume.pdf from the demo folder. Open analyst-intern.txt and copy the entire posting. The posting goes in a text field. The PDF goes in the resume uploader.
-3. On Welcome, click Get started to open Upload Resume. Upload Jordan's resume and look for **Resume ready**. Enter **Campus Operations Data Analyst Intern** as the desired job title, **Higher education** as the sector, and **Build a dashboard portfolio project before internship applications** as the goal. Paste the posting under **Target job description**.
-4. Check the consent box to send the fictional inputs for AI processing. Click **Continue to Resume Analyzer**, then use **Next step** to reach **Job Match Analyzer** and click **Compare resume with this job**. Open the extracted text, check the results against the original PDF, and download the report. Keep this actual rehearsal report available in case the network stalls during class.
+## Use the app
 
-## Five-minute presentation
+Start on the **Resume** page. Use the **Continue** button on each page to move through the workflow. You can revisit earlier steps to revise your inputs.
 
-| Time | What to show | What to say or ask |
-| --- | --- | --- |
-| 0:00–0:35 | Jordan's resume beside the internship posting | “Jordan has class projects but little work experience. Can a dining survey project count as evidence for this analyst internship?” |
-| 0:35–1:20 | Upload the PDF, show the target posting and submit the comparison | Point to the posting's Excel requirement. Ask the audience what evidence they would accept. Explain that students can replace both inputs with their own materials. |
-| 1:20–2:30 | Open the extracted resume and the evidence comparison | Find Jordan's 480 survey responses and pivot tables. Compare that wording with the model's assessment. Then find the preferred Power BI requirement. Jordan's charts demonstrate presentation experience, but the resume gives no evidence of an interactive Power BI dashboard. Discuss the actual output if it differs. |
-| 2:30–3:35 | Expand Retrieved guidance for comparison | The app ranks local career guidance by term relevance using TF-IDF and cosine similarity. It sends selected passages alongside student inputs to the model. The posting supplies the requirements, the resume supplies evidence, and the retrieved guidance helps interpret it. Point to a source actually displayed. |
-| 3:35–4:25 | Show the estimated compatibility score and one next action | Required criteria count twice as much as preferred ones. A match earns full credit, partial evidence earns half. The model classifies evidence and Python calculates the percentage. Suggest that Jordan build a dashboard with location and time filters, test it, then add the project to the resume. |
-| 4:25–5:00 | Download the report and return to the student question | “Jordan can already explain the SQL and Excel work. The next portfolio project should give an employer something concrete to inspect.” Mention that the student can practice explaining the project in Interview Coach. |
+| Step | What you can do |
+| --- | --- |
+| 1. Resume | Upload a text-readable PDF, Word DOCX, or TXT file up to 5 MB. Review or edit the extracted text before moving on. |
+| 2. Preferences | Choose or type a job title, location, experience level or employment type, and target salary range in USD. Paste a target job description if you already have one. |
+| 3. Resume Review | Get a score out of 100 with explanations for organization, clarity, impact, relevance, and skills. **Get AI feedback** adds a strength and a concrete improvement based on your resume. |
+| 4. Find Jobs | Browse live openings grouped by employer. Expand **Job details**, open the source posting, or select the opening to carry its description into Job Match. |
+| 5. Job Match | Compare your resume with the selected posting or a pasted description. Review the score, supporting excerpts, partial matches, gaps, and suggestions. |
+| 6. Application Draft | Prepare an editable cover note from supporting resume evidence. Copy the draft or open the employer’s application. The optional Chrome form helper fills supported fields on matching Greenhouse pages. |
+| 7. Interview Inbox | Paste a recruiter message or connect Gmail with read-only access. The app flags possible invitations and links Gmail results to the original threads. |
+| 8. Interview Practice | Generate a role-specific question, hear it read aloud, and type or dictate an answer. An optional camera preview lets you rehearse on screen. Feedback covers relevance, specificity, structure, action, and result. |
+| 9. Career Chat | Ask the agent to explain a score, find current openings, or suggest your next step. Enable **Include my resume and job details** to use those details in the conversation. |
+| 10. Saved Profile and Jobs | Keep candidate details, extracted resume text, and selected job snapshots. GitHub Pages keeps them for the current tab session. A backend deployment can save them across visits. |
 
-## Try a contrasting student or a follow-up
+The PDF reader extracts text from the first 10 pages and the app accepts up to 14,000 characters of resume text. Run OCR on a scanned PDF first, or export it to a text-readable format.
 
-Upload Riley-resume.pdf and keep the same posting. Riley briefed volunteers and maintained a spreadsheet, while Jordan explicitly used SQL joins and pivot tables. Inspect how the explanation changes. A missing detail means the document provides insufficient evidence. Check with the student before suggesting any rewrite.
+## How jobs are found and scored
 
-For a follow-up, open **Ask Your Career Coach** with Jordan's inputs and ask “Using only my campus dining project, draft one bullet for this internship and explain which requirement it supports.” Check every number and tool against the original document. In **Career Roadmap**, click **Build my 90-day career plan** and look for a project deliverable at each phase. In **Resume Analyzer**, inspect the five criteria and one suggested rewrite. In **Interview Coach**, select the job-description option and generate five questions. Answer one with a specific example and review the feedback before continuing.
+**Find Jobs** checks 19 configured company boards through Greenhouse and also queries the [Jobicy remote jobs feed](https://jobicy.com/). It starts with your title, location, level, and salary preferences and uses relevant resume skills and related titles to rank results. **Search with AI** can suggest additional titles while the initial search runs. **Show more companies** reveals more of the current results.
 
-## Explain the implementation
+If there are no openings under the selected filters, the search can widen its location, level, or salary criteria. The results banner identifies any criteria that changed. Openings with unreported or noncomparable pay can appear. The app searches its connected sources, so results depend on the employers covered and each feed’s availability. Confirm current details on the posting before applying.
 
-The comparison workflow reads the file, extracts target requirements, and asks the model to classify resume evidence for each one. Career Roadmap adds a planning stage. These are coordinated functions with a fixed sequence. Structured responses and validation make the results easier to inspect. The knowledge library is curated locally. The app does not need a separate database for the demo. Reports stay in the session unless the student downloads them. AI requests send submitted information to Google Gemini.
+**Job Match** evaluates the qualifications in one posting. Quick Match uses source-based rules. **Run live AI** compares selected resume and posting excerpts and checks the model’s source references before scoring. If the model cannot produce usable comparisons, the app can show a labeled source-based result.
 
-If asked about AI-assisted coding, show a specific change your group reviewed, such as the sample download or the score calculation. Describe the input you tried, what you observed, and what you would improve. Only claim tests your group actually performed.
+| Scoring rule | Points |
+| --- | ---: |
+| Required qualification | 2 available |
+| Preferred qualification | 1 available |
+| Match, partial evidence, or gap | Full, half, or zero credit |
 
-## Run or publish the update
+The match percentage is the earned points divided by the available points, rounded to a whole percent. It estimates how well the resume demonstrates the posting’s qualifications. Employers make their own screening decisions. Resume Review is a separate checklist with five categories worth up to 20 points each.
 
-Unzip the app package. From the folder containing app.py, install requirements with `python -m pip install -r requirements.txt` and start it with `python -m streamlit run app.py`. Configure GEMINI_API_KEY and the optional DEMO_ACCESS_CODE using Streamlit secrets or environment variables. Keep credentials out of the repository.
+## Apply and prepare for interviews
 
-For the existing hosted app, put app.py, requirements.txt, demo, and .streamlit/config.toml in the repository root on the branch connected to Streamlit. Preserve the existing Cloud secrets. After redeployment, open the classroom URL in a fresh window and verify that Welcome offers **Download sample resume**. Then run one real comparison. If extraction fails, use the supplied text-readable PDF. If the API key or usage limit blocks analysis, show the saved rehearsal report and identify it as a previous run.
+Run Job Match before preparing a draft. Review the note for accuracy, then use the employer’s link to open the application. For a supported Greenhouse opening, the optional [form helper](https://github.com/victordamdanh/Ai-Career-Coach/tree/career-match-web-demo/career-match-web/extension) can fill supported fields from a packet you paste. Review the fields, attach your resume, and submit from the employer’s site.
 
-## Move through the coach
+To check a recruiter reply, paste it into **Interview Inbox** or connect a Gmail account. Continue to **Interview Practice** to generate a first-round question based on the selected job and available match details. Use **Read question aloud**, **Answer by voice**, or the text box. The camera is a local preview. Feedback scores the answer transcript out of 100, with a labeled checklist when AI feedback is unavailable or incomplete.
 
-Welcome explains the app and each tool. Get started opens Upload Resume, which contains the resume upload, career details, target job description, and consent checkbox. Once a readable resume is ready and consent is checked, Continue to Resume Analyzer opens the first tool. Next step buttons lead through Job Match Analyzer, Interview Coach, Career Roadmap, and Ask Your Career Coach. Navigate lets you open any page directly. Edit resume and career details returns to Upload Resume. Your extracted resume and details stay available across the tools during this session. Uploading another resume replaces the saved text. Clear my information and reports removes the saved inputs and reports.
+### Connect Gmail
 
-## Connect Gemini in Streamlit
+A Gmail connection is optional. Pasted messages work without it.
 
-Open the deployed app settings and find Secrets. Add GEMINI_API_KEY as a quoted string containing your Google AI Studio API key. Save the secret and allow the app to restart. Keep the key in Streamlit secrets or a server environment variable. Never add it to app.py, README.md, or a GitHub commit. Project name and project number are unnecessary for this API-key connection.
+1. In Google Cloud, enable the Gmail API and create a **Web application** OAuth client for your deployment. For the public app, add `https://victordamdanh.github.io` as an authorized JavaScript origin. For another deployment, use its exact origin, including its port when applicable. The popup flow uses JavaScript origins.
+2. Configure the `https://www.googleapis.com/auth/gmail.readonly` scope. If the OAuth app is in **Testing** mode, add the Gmail accounts that will test it.
+3. In **Interview Inbox**, expand **Connect Gmail for read-only inbox checks**, enter your OAuth web client ID, and choose **Connect Gmail**. Review the requested access in Google’s window.
+4. The app checks up to 20 matching inbox messages from the past 30 days on connection and when you click **Check recent messages**. It looks for possible invitations in the previews. Verify any result in Gmail. Use **Disconnect** to revoke the tab’s access token.
 
-The app uses the existing Python client library with Google's documented Gemini compatibility endpoint using Gemini 3.5 Flash-Lite. Resume Analyzer sends the extracted resume, optional career context and job posting, scoring rubric, and retrieved career guidance. Gemini returns five scores with explanations, strengths, weaknesses, and proposed rewrites. Python validates the rubric, citations, and original excerpts before displaying a result. The other coaching tools use the same Gemini connection. Repeated identical requests may reuse a genuine result already generated during the session.
+The inbox check runs while the page is open and on demand. It neither sends replies nor monitors email in the background. [Google OAuth token model](https://developers.google.com/identity/oauth2/web/guides/use-token-model)
 
-Free-tier availability and quotas depend on the Google project. Wait and check Google AI Studio if the app reports a quota limit. The dollar estimates shown by the app use paid-tier reference rates for internal guards. They do not verify whether the project is eligible for free usage. Use fictional or redacted documents because free-tier inputs and outputs may be used to improve Google products.
+## Browser, AI, and data
 
-## Welcome information and supported files
+| Where you run it | AI and storage |
+| --- | --- |
+| Public GitHub Pages | Live AI runs in the browser through WebLLM. Resume text, chat history, saved profiles, and saved jobs are held in the current tab session and clear on reload. |
+| Local Node.js | Adds persistent SQLite storage for saved profiles and job snapshots. Career Chat can use a server-side Gemini key with a backup model. |
+| Hosted Worker | Supports persistent storage with Cloudflare D1 and a trusted sign-in gateway. Gemini is optional and runs through the backend for signed-in users. |
 
-Welcome explains the LLM, RAG retrieval, the fixed career workflow, evidence checks, privacy and consent, responsible feedback, supported files, and cost controls. The internship demo files remain in the repository demo folder for classroom preparation.
+Use current desktop Chrome or Edge with WebGPU for on-device AI. The first use downloads a model, so loading time depends on your device and network. The resume checklist, Quick Match, live job search, and pasted-message invitation check work without the language model. Voice and camera features require browser support and permission.
 
-Upload Resume accepts PDF, Word DOC, and Word DOCX files up to 5 MB. DOCX uses python-docx, PDF uses PyMuPDF, and older DOC files use antiword. Streamlit Community Cloud installs antiword from packages.txt. For a local installation, install antiword through the operating system package manager. On macOS, the built-in textutil reader is used when antiword is unavailable. DOC extraction uses a temporary directory, a 15-second conversion timeout, file signature checks, and the shared extracted-text limits. Conversion failures display guidance to export as PDF or DOCX.
+The resume file is parsed in your browser. If you enable Gemini on a backend, Google processes chat requests and any resume or posting excerpts you choose to include. Gmail checks make read-only requests to Google from the current tab and keep the short-lived token in memory.
 
-## Recovery from temporary AI failures
+## Run locally
 
-For a temporary connection failure, timeout, HTTP 408, or server error, the app makes one backup attempt using Gemini 3.1 Flash-Lite. The primary model is Gemini 3.5 Flash-Lite. Cost estimates use the higher primary-model reference rates for both attempts. Each attempt passes the existing request and budget guards. Authentication, quota, invalid-input, and model-access errors stop with a specific message. Uploaded information remains in the session, so use the same feature button to try again without reloading. Rejected HTTP requests release their reserved cost estimate. Failed calls with unknown usage retain a conservative reservation.
+Use Node.js **22.13 or later**.
 
-## Resume matched roles and company applications
+```bash
+git clone --branch career-match-web-demo https://github.com/victordamdanh/Ai-Career-Coach.git
+cd Ai-Career-Coach/career-match-web
+npm start
+```
 
-In Job Match Analyzer, choose Find jobs matching my resume after uploading a resume and providing consent. Gemini suggests up to three student-appropriate roles, each linked to an actual resume excerpt. Each suggestion opens Amazon or Google careers searches for that role. Students choose a current opening, review its requirements, and apply on the employer website. The company application library also links to Microsoft and Amazon student programs. Role suggestions are generated from the resume. Current vacancies and applications are handled by the employer websites. This action uses a separate AI request and the existing recovery and budget controls.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Set `GEMINI_API_KEY` in the server environment if you want Gemini for Career Chat. `npm test` runs the automated checks. The [developer documentation](https://github.com/victordamdanh/Ai-Career-Coach/blob/career-match-web-demo/career-match-web/README.md) covers the source layout, deployment builds, and reference cases.
+
+## Earlier Streamlit edition
+
+The original Python and Streamlit coach is available in [`app.py`](https://github.com/victordamdanh/Ai-Career-Coach/blob/main/app.py). It has its own [hosted app](https://ai-career-coach-8jnrwtqi7drqqdrgai2f2d.streamlit.app/) and uses `requirements.txt` and `GEMINI_API_KEY` when run locally.
