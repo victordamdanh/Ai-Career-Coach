@@ -89,7 +89,9 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
 .method{margin-top:17px}
 .method p{color:var(--muted);font-size:.91rem;margin-top:7px;max-width:75ch}
 .flow-actions{position:sticky;top:0;z-index:1;display:flex;justify-content:flex-end;background:#f0f4ef;padding:8px 0;margin-bottom:12px}
-.upload-panel .flow-actions{position:static;background:transparent;margin:12px 0 0;padding:0}
+.upload-panel .flow-actions{position:static;background:transparent;margin:12px 0 0;padding:0;justify-content:flex-start;flex-wrap:wrap;gap:12px}
+.automatic-run{margin:1rem 0;padding:1rem}
+.automatic-run h2{margin:0}
 #saved-jobs:empty{display:none}
 #camera{width:min(440px,100%);border-radius:10px;background:#132620}
 #question{margin:8px 0;font-weight:660}
@@ -108,7 +110,7 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
   .workspace{grid-template-columns:1fr}
   .shell{width:calc(100% - 28px)}
   .intro{padding-top:28px}
-  .flow-actions .button{width:100%}
+  .flow-actions .button,.upload-panel .flow-actions button{width:100%}
   .chat-message{max-width:100%}
 }
 

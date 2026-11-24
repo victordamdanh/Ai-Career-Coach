@@ -1,4 +1,4 @@
-import { detectInvitation } from "./career-steps.mjs?v=3dbbfffc5ea3";
+import { detectInvitation } from "./career-steps.mjs?v=d81397550915";
 
 const scriptUrl = "https://accounts.google.com/gsi/client";
 const scopes = {
