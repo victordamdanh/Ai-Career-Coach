@@ -1,5 +1,5 @@
-import { companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs?v=664c2d22e487";
-import { jobs, resume, description, walkthrough } from "./data.mjs?v=664c2d22e487";
+import { companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs?v=0121d319f728";
+import { jobs, resume, description, walkthrough } from "./data.mjs?v=0121d319f728";
 
 const categoriesList = ["skills", "experience", "education", "certifications", "projects"];
 const priorities = { required: 2, preferred: 1 };

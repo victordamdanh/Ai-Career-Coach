@@ -8,6 +8,7 @@ const files = {
   "/app.mjs": ["app.mjs", "text/javascript; charset=utf-8"],
   "/agent.mjs": ["agent.mjs", "text/javascript; charset=utf-8"],
   "/resume-review.mjs": ["resume-review.mjs", "text/javascript; charset=utf-8"],
+  "/chat-agent.mjs": ["chat-agent.mjs", "text/javascript; charset=utf-8"],
   "/chat.mjs": ["chat.mjs", "text/javascript; charset=utf-8"],
   "/inbox.mjs": ["inbox.mjs", "text/javascript; charset=utf-8"],
   "/career-steps.mjs": ["career-steps.mjs", "text/javascript; charset=utf-8"],

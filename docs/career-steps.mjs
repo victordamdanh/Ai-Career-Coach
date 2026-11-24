@@ -1,4 +1,4 @@
-import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=664c2d22e487";
+import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=0121d319f728";
 
 export async function extractResume(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Use a resume file up to 5 MB.");
@@ -53,7 +53,7 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
     status("upload-status", "Scanning the file locally…");
     try {
       const extracted = (await extractResume(file)).trim();
-      if (extracted.length < 20) throw new Error("Very little text could be read. Use a text-readable PDF or paste your resume.");
+      if (extracted.length < 20) throw new Error("Very little text could be read. Upload a text-readable PDF, DOCX, or TXT file.");
       $("extracted").value = extracted.slice(0, resumeLimit);
       $("extraction").open = true;
       onResume($("extracted").value);
@@ -77,7 +77,7 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
   function showResumeReview() {
     const resume = $("resume").value.trim();
     if (resume.length < 20) {
-      status("review-status", "Upload or paste resume text first.", true);
+      status("review-status", "Upload your resume first.", true);
       return;
     }
     const focus = [$("role").value, $("target-description").value].filter(Boolean).join("\n");

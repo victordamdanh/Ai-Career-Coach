@@ -1,17 +1,16 @@
-import { createClassroomRequest } from "./request.mjs?v=664c2d22e487";
+import { createClassroomRequest } from "./request.mjs?v=0121d319f728";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=664c2d22e487";
-import { attachCareerSteps } from "./career-steps.mjs?v=664c2d22e487";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=664c2d22e487";
-import { attachChat } from "./chat.mjs?v=664c2d22e487";
-import { attachInbox } from "./inbox.mjs?v=664c2d22e487";
+import { browserModel, createAgent } from "./agent.mjs?v=0121d319f728";
+import { attachCareerSteps } from "./career-steps.mjs?v=0121d319f728";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=0121d319f728";
+import { attachChat } from "./chat.mjs?v=0121d319f728";
+import { attachInbox } from "./inbox.mjs?v=0121d319f728";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
 const resume = $("resume");
 const job = $("job");
 const live = $("live");
-const walk = $("walk");
 const report = document.querySelector(".report");
 const body = $("result");
 const labels = { skills: "Technical skills", experience: "Experience", education: "Education", certifications: "Certifications", projects: "Projects", match: "Match", partial: "Partial", gap: "Gap" };
@@ -88,7 +87,6 @@ function sample() {
 }
 function updateButtons() {
   live.disabled = busy || !dataset;
-  walk.disabled = busy || !sample() || job.value !== sample().description ;
   $("draft-button").disabled = busy || !target || !lastResult;
   $("draft-instructions").hidden = !!lastResult;
   $("application-next").hidden = !target;
@@ -132,9 +130,13 @@ $("search").addEventListener("submit", async event => {
 });
 
 function listingCard(listing) {
-  const item = el("details", "", "job-listing");
-  const summary = el("summary", listing.title);
-  summary.append(el("small", listing.location));
+  const item = el("article", "", "job-listing");
+  const heading = el("h3", "", "job-title");
+  const title = officialLink(listing.url, listing.title);
+  title.title = "Open the official job posting";
+  heading.append(title);
+  const details = el("details");
+  const summary = el("summary", "Job details");
   const description = el("p", listing.description, "list-description");
   const actions = el("div", "", "buttons");
   const compare = el("button", "Compare to my resume");
@@ -157,8 +159,8 @@ function listingCard(listing) {
     }
     return pending;
   }
-  item.addEventListener("toggle", () => {
-    if (item.open) loadDescription().catch(() => {});
+  details.addEventListener("toggle", () => {
+    if (details.open) loadDescription().catch(() => {});
   });
   compare.addEventListener("click", async () => {
     compare.disabled = true;
@@ -168,8 +170,9 @@ function listingCard(listing) {
     } catch { /* The job card displays the retrieval error and official link. */ }
     finally { compare.disabled = false; }
   });
-  actions.append(compare, officialLink(listing.url, "Official posting and application"));
-  item.append(summary, description, actions);
+  actions.append(compare);
+  details.append(summary, description);
+  item.append(heading, el("p", listing.location, "hint"), details, actions);
   return item;
 }
 
@@ -236,8 +239,20 @@ async function searchResumeCompanies(refine) {
       const item = el("details", "", "company-match");
       const summary = el("summary", group.company);
       summary.append(el("small", group.total + " matching " + (group.total === 1 ? "opening" : "openings")));
-      item.append(summary, ...group.jobs.map(listingCard));
-      if (group.total > group.jobs.length) item.append(el("p", "Showing the top " + group.jobs.length + " title matches.", "hint"));
+      const openings = el("div");
+      const more = el("button", "", "secondary");
+      more.type = "button";
+      let shown = 0;
+      function revealOpenings() {
+        const end = Math.min(shown + 8, group.jobs.length);
+        openings.append(...group.jobs.slice(shown, end).map(listingCard));
+        shown = end;
+        more.hidden = shown >= group.jobs.length;
+        more.textContent = "Show more jobs (" + (group.jobs.length - shown) + " remaining)";
+      }
+      more.addEventListener("click", revealOpenings);
+      revealOpenings();
+      item.append(summary, openings, more);
       return item;
     });
     if (cards.length) cards[0].open = true;
@@ -294,7 +309,7 @@ for (const field of [resume, job]) field.addEventListener("input", () => {
 
 function render(result, note) {
   lastResult = result;
-  $("mode").textContent = result.mode === "live" ? "Live AI · Source quotes checked" : "Sample walkthrough · Reviewed example";
+  $("mode").textContent = "Live AI · Source quotes checked";
   $("score").textContent = result.rubric.score + "%";
   const breakdown = el("div", "", "breakdown");
   for (const item of result.rubric.categories) {
@@ -313,11 +328,6 @@ function render(result, note) {
   const steps = el("ol");
   result.actions.forEach(action => steps.append(el("li", action)));
   body.append(el("h3", "Five next steps"), steps);
-  if (result.mode !== "live") {
-    const example = el("details");
-    example.append(el("summary", "Fictional resume used in this walkthrough"), el("p", dataset.resume, "evidence sample-text"));
-    body.append(example);
-  }
   if (note) body.append(el("p", note, "hint"));
 }
 async function run(task) {
@@ -338,17 +348,12 @@ async function run(task) {
     updateButtons();
   }
 }
-walk.addEventListener("click", () => run(async () => {
-  status("status", "Loading the reviewed walkthrough…");
-  const entry = sample();
-  render(await request("walkthrough?id=" + encodeURIComponent(entry.id)), entry.note);
-}));
 $("compare").addEventListener("submit", event => {
   event.preventDefault();
   const resumeText = resume.value.trim();
   const jobText = job.value.trim();
   if (resumeText.length < 20 || jobText.length < 20) {
-    status("status", "Enter at least 20 characters in each field.", true);
+    status("status", "Upload your resume and add a job description before running a match.", true);
     return;
   }
   run(async () => {
@@ -452,7 +457,8 @@ loadAccount().catch(error => status("account-status", error.message, true));
 
 function syncResumePreview() {
   $("extracted").value = resume.value;
-  $("review-resume-note").textContent = resume.value.trim().length >= 20 ? "Your resume is ready to review." : "Upload a resume or use the sample to get started.";
+  $("extraction").hidden = !resume.value;
+  $("review-resume-note").textContent = resume.value.trim().length >= 20 ? "Your resume is ready to review." : "Upload your resume to get started.";
   $("resume-analysis").replaceChildren();
   $("review-ai-result").replaceChildren();
   status("review-status");
@@ -462,12 +468,6 @@ function setResume(text) {
   resume.value = text.slice(0, resumeLimit);
   resume.dispatchEvent(new Event("input"));
 }
-
-$("use-sample-resume").addEventListener("click", () => {
-  $("file").value = "";
-  setResume(dataset.resume);
-  status("upload-status", "Sample resume loaded. You can review its text before continuing.");
-});
 
 const stopInterview = attachCareerSteps({ $, status, el, browserModel, onResume: setResume, onPreferences(description, query) {
   if (busy) return;
@@ -497,10 +497,13 @@ $("packet").addEventListener("click", async () => {
 });
 attachInbox({ $, status, el });
 
-attachChat({ $, status, el, browserModel, request, json, onDeviceOnly: true, getContext: () => ({
-  resume: resume.value.trim().slice(0, 2200),
+attachChat({ $, status, el, browserModel, request, json, officialLink, onDeviceOnly: true, getContext: () => ({
+  resume: resume.value.trim(),
   job: job.value.trim().slice(0, 1300),
   role: $("role").value.trim(),
+  place: $("place").value.trim(),
+  level: $("level").value,
+  match: lastResult,
 }) });
 
 try {
@@ -514,8 +517,8 @@ try {
   custom.value = "";
   select.append(custom);
   select.disabled = false;
-  if (!target && !job.value) chooseSample();
-  $("use-sample-resume").disabled = false;
+  if (!target && !job.value) select.value = "";
+  updateButtons();
 } catch (error) {
   status("status", error.message, true);
 }

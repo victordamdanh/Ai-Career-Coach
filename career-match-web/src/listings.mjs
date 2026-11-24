@@ -102,7 +102,7 @@ export async function recommendCompanies({ roles, place, level }, fetcher = fetc
       if (rank) matches.push({ listing, rank });
     }
     matches.sort((a, b) => b.rank - a.rank || a.listing.title.localeCompare(b.listing.title));
-    return { company: companyBoards[company], companyId: company, total: matches.length, jobs: matches.slice(0, 8).map(match => match.listing), rank: matches[0]?.rank ?? 0 };
+    return { company: companyBoards[company], companyId: company, total: matches.length, jobs: matches.map(match => match.listing), rank: matches[0]?.rank ?? 0 };
   }));
   const checked = [];
   const unavailable = [];

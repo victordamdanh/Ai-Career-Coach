@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
-<link rel="stylesheet" href="./styles.css?v=664c2d22e487">
-<script type="module" src="./app.mjs?v=664c2d22e487"></script>
+<link rel="stylesheet" href="./styles.css?v=0121d319f728">
+<script type="module" src="./app.mjs?v=0121d319f728"></script>
 </head>
 <body>
 <header>
@@ -36,11 +36,10 @@
           <span>Resume file</span>
           <input id="file" type="file" accept=".pdf,.docx,.txt">
         </label>
-        <details id="extraction"><summary>Paste or edit resume text</summary><textarea id="extracted" rows="6" maxlength="14000" aria-label="Resume text" placeholder="Paste your resume here if a file doesn’t extract correctly."></textarea></details>
+        <details id="extraction" hidden><summary>Review or edit extracted text</summary><textarea id="extracted" rows="6" maxlength="14000" aria-label="Extracted resume text"></textarea></details>
         <p id="upload-status" class="hint" role="status"></p>
         <div class="buttons upload-actions">
           <a class="button" href="#preferences">Continue to job preferences</a>
-          <button id="use-sample-resume" type="button" class="secondary" disabled>Use a sample resume</button>
         </div>
         <p id="edition-note" class="hint">Public classroom demo. Resume extraction runs in your browser. Profiles and saved jobs are kept only while this page is open.</p>
       </div>
@@ -84,7 +83,7 @@
   </section>
 
   <section data-page="jobs" hidden aria-labelledby="search-title">
-    <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse public company career boards. Choose a listing to compare it with your resume.</p></div>
+    <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse public company career boards. Open a job title to view the official posting, or compare the role with your resume.</p></div>
     <div class="panel"><div class="section">
       <div class="buttons"><button id="find-resume-jobs" type="button">Find companies from my resume</button><button id="ai-job-search" type="button" class="secondary">Refine with AI</button></div>
       <p class="hint">Searches the connected career boards using your resume skills and job preferences.</p>
@@ -106,10 +105,10 @@
         <div class="heading"><h2 id="compare-title">Compare documents</h2><p>Use a live listing, a sample, or your own text.</p></div>
         <form class="section" id="compare">
           <label for="samples">Sample posting</label><select id="samples" disabled></select><p id="source" class="hint"></p>
-          <label for="resume">Resume</label><textarea id="resume" required maxlength="14000" placeholder="Paste relevant resume text."></textarea>
+          <label for="resume">Resume</label><textarea id="resume" readonly maxlength="14000" placeholder="Upload your resume to fill this field."></textarea>
           <label for="job">Job description</label><textarea id="job" required maxlength="3000" placeholder="Paste the qualifications you want to compare."></textarea>
-          <div class="buttons"><button id="live" disabled>Run live AI</button><button id="walk" class="secondary" type="button" disabled>View sample walkthrough</button></div>
-          <p class="hint">The walkthrough uses a fictional resume. Live AI selects relevant excerpts and needs WebGPU.</p>
+          <div class="buttons"><button id="live" disabled>Run live AI</button><a href="#upload" class="button secondary">Upload or edit resume</a></div>
+          <p class="hint">Live AI compares relevant excerpts from your uploaded resume with the job description. It needs WebGPU.</p>
           <p id="status" role="status" class="hint"></p>
         </form>
       </section>
@@ -169,13 +168,13 @@
   </section>
 
   <section data-page="chat" hidden aria-labelledby="chat-title">
-    <div class="page-heading"><h1 id="chat-title" tabindex="-1">Career Chat</h1><p>Ask a question about resumes, job searches, applications, or interview prep.</p></div>
+    <div class="page-heading"><h1 id="chat-title" tabindex="-1">Career Chat</h1><p>Ask your career agent to review your resume, find live openings, or explain your job match.</p></div>
     <div class="panel">
       <div class="section">
         <div id="chat-history" class="chat-history" role="log" aria-label="Chat messages"></div>
         <form id="chat-form">
-          <label for="chat-input">Your question</label><textarea id="chat-input" rows="3" maxlength="1000" required placeholder="How can I describe a class project on my resume?"></textarea>
-          <label class="check-label"><input id="chat-context" type="checkbox"> Include resume and job details</label>
+          <label for="chat-input">Your question</label><textarea id="chat-input" rows="3" maxlength="1000" required placeholder="Find data analyst internships or review my resume."></textarea>
+          <label class="check-label"><input id="chat-context" type="checkbox"> Include my resume and job details</label>
           <p id="chat-privacy" class="hint">This public edition runs chat on your device. Live chat requires WebGPU and downloads a model on first use.</p>
           <div class="buttons"><button id="chat-submit">Send question</button><button id="chat-clear" type="button" class="secondary">Clear chat</button></div>
           <p id="chat-status" class="hint" role="status"></p>
