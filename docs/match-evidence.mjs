@@ -1,4 +1,4 @@
-import { resumeProfile } from "./resume-review.mjs?v=2f6b9fac912e";
+import { resumeProfile } from "./resume-review.mjs?v=8ee896347678";
 
 const categories = ["skills", "experience", "education", "certifications", "projects"];
 const statuses = ["match", "partial", "gap"];
@@ -126,4 +126,14 @@ export function matchActions(rows) {
     "Review your resume before sending it to make sure every claim is accurate.",
     "Save the posting so you can refer to the wording while preparing.",
   ])].slice(0, 5);
+}
+
+export function draftFromEvidence({ title, company, excerpts }, ids) {
+  const selected = Array.isArray(ids) ? [...new Set(ids)].filter(id => Number.isInteger(id) && id > 0 && id <= excerpts.length) : [];
+  const evidence = (selected.length ? selected.slice(0, 3).map(id => excerpts[id - 1]) : excerpts.slice(0, 3))
+    .map(text => "• " + text).join("\n");
+  const role = title ? "the " + title.trim() + " opening" : "your opening";
+  const employer = company ? " at " + company.trim() : "";
+  return "Dear hiring team,\n\nI’m applying for " + role + employer + ". Here are examples from my resume:\n\n" + evidence +
+    "\n\nThank you for considering my application.\n\nBest,\n[Your name]";
 }

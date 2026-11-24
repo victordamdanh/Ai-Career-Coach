@@ -1,4 +1,4 @@
-import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget } from "./job-preferences.mjs?v=2f6b9fac912e";
+import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget } from "./job-preferences.mjs?v=8ee896347678";
 
 export const companyBoards = {
   anthropic: "Anthropic", airbnb: "Airbnb", cloudflare: "Cloudflare", databricks: "Databricks",
@@ -102,7 +102,6 @@ const relatedTitles = [
   ["customer support representative", "customer service representative", "customer support specialist", "customer service associate"],
   ["administrative assistant", "office assistant", "administrative coordinator"],
 ].map(group => group.map(roleKey));
-
 function matchesTitle(title, role) {
   if (title.includes(role)) return true;
   const words = role.trim().split(" ");
@@ -210,7 +209,6 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
   const matches = [...companies.values()].map(openings => {
     const rows = [...openings.values()].sort((a, b) => b.rank - a.rank || a.listing.title.localeCompare(b.listing.title));
     return { company: rows[0].listing.company, jobs: rows.map(row => row.listing), rank: rows[0].rank, total: rows.length };
-  });
-  matches.sort((a, b) => b.rank - a.rank || b.total - a.total || a.company.localeCompare(b.company));
+  }).sort((a, b) => b.rank - a.rank || b.total - a.total || a.company.localeCompare(b.company));
   return { matches, checked, unavailable };
 }

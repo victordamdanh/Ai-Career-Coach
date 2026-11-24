@@ -1,4 +1,4 @@
-import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=2f6b9fac912e";
+import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=8ee896347678";
 
 export async function extractResume(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Use a resume file up to 5 MB.");
@@ -39,6 +39,39 @@ export function detectInvitation(text) {
   const sample = text.toLowerCase();
   if (/\b(unfortunately|regret to inform|move forward with other|position has been filled|will not be moving forward|not selected|no longer under consideration)\b/.test(sample)) return false;
   return /\binterview\b/.test(sample) && /\b(invite|invitation|schedule|availability|available|confirm|booking)\b/.test(sample);
+}
+
+const interviewCriteria = ["relevance", "specificity", "structure", "action", "result"];
+const interviewStopWords = new Set("what when where which would could should describe discuss explain share tell talk about your experience example how with this that from were have been role answer time them they".split(" "));
+
+export function reviewInterviewAnswer(question, answer, response) {
+  const criteria = interviewCriteria.map(name => ({ name, points: response?.scores?.[name] }));
+  const feedback = response?.feedback;
+  if (criteria.every(({ points }) => Number.isInteger(points) && points >= 0 && points <= 20) &&
+    Array.isArray(feedback) && feedback.length === 3 && feedback.every(note => typeof note === "string" && note.trim() && note.length <= 500)) {
+    return { criteria, feedback, mode: "AI feedback" };
+  }
+
+  const answerWords = answer.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [];
+  const terms = [...new Set(question.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [])].filter(term => !interviewStopWords.has(term));
+  const shared = terms.filter(term => answerWords.includes(term)).length;
+  const actions = /\b(?:built|created|analyzed|designed|fixed|implemented|tested|measured|led|reviewed|wrote|used|changed|checked|chose|compared|applied)\b/i.test(answer);
+  const situation = /\b(?:when|during|project|team|problem|task|client|customer)\b/i.test(answer);
+  const result = /\b(?:result|outcome|reduced|improved|increased|completed|saved|learned|delivered|decreased|resolved)\b/i.test(answer);
+  const number = /\b\d+/.test(answer);
+  const method = /\b(?:using|with|by|via)\b/i.test(answer);
+  const checklist = [
+    [Math.min(20, 4 + 4 * shared), "Start with a sentence that answers the question directly."],
+    [6 + 5 * Number(number) + 5 * Number(method) + 4 * Number(answerWords.length >= 45), "Name the tool, method, or constraint that shaped your decision."],
+    [5 + 5 * Number(situation) + 5 * Number(actions) + 5 * Number(result), "Organize the answer around the situation, your action, and the result."],
+    [actions ? 16 : 6, "Explain what you personally did and why you chose that approach."],
+    [5 + 10 * Number(result) + 5 * Number(result && number), "End with a concrete outcome you can verify or explain what you learned."],
+  ];
+  return {
+    mode: "Checklist feedback",
+    criteria: checklist.map(([points], index) => ({ name: interviewCriteria[index], points })),
+    feedback: [...checklist].sort((a, b) => a[0] - b[0]).slice(0, 3).map(([, note]) => note),
+  };
 }
 
 export function attachCareerSteps({
@@ -148,15 +181,17 @@ export function attachCareerSteps({
   $("feedback").addEventListener("click", () => interviewTask(async () => {
     const answer = $("answer").value.trim();
     if (!question || answer.length < 20) throw new Error("Generate a question and provide an answer first.");
-    const result = await modelJson("practice-status", 'Score the answer from 0 to 20 on relevance, specificity, structure, action, and result. Return JSON with "criteria" array of exactly five objects containing "name" and integer "points", and "feedback" array of three actionable strings. Reference what the candidate said. Do not infer voice, facial expression, or hiring outcomes.', { question, answer }, 430);
-    const names = ["relevance", "specificity", "structure", "action", "result"];
-    if (!Array.isArray(result.criteria) || result.criteria.length !== 5 || new Set(result.criteria.map(item => String(item.name).toLowerCase())).size !== 5 ||
-      !result.criteria.every(item => names.includes(String(item.name).toLowerCase()) && Number.isInteger(item.points) && item.points >= 0 && item.points <= 20) ||
-      !Array.isArray(result.feedback) || result.feedback.length !== 3 || !result.feedback.every(item => typeof item === "string" && item.length <= 500)) throw new Error("The model returned incomplete feedback. Try again.");
+    let response;
+    try {
+      response = await modelJson("practice-status", 'Score only the text of the answer. Use integers 0 to 20 for each score and give three short concrete suggestions. Return {"scores":{"relevance":0,"specificity":0,"structure":0,"action":0,"result":0},"feedback":["tip 1","tip 2","tip 3"]}.', { question, answer }, 285);
+    } catch { /* The text-based checklist can still review the answer. */ }
+    if ($("answer").value.trim() !== answer) throw new Error("Your answer changed. Select Get AI feedback again.");
+    const result = reviewInterviewAnswer(question, answer, response);
     const total = result.criteria.reduce((sum, item) => sum + item.points, 0);
     const notes = el("ul");
     result.feedback.forEach(item => notes.append(el("li", item)));
     $("feedback-result").replaceChildren(el("h3", "Practice feedback · " + total + "/100"),
+      el("p", result.mode, "hint"),
       el("p", result.criteria.map(item => item.name + " " + item.points + "/20").join(" · ")), notes);
     onInterviewFeedback?.();
     status("practice-status", "Feedback ready.");
