@@ -29,12 +29,13 @@ export async function api(request) {
     const skills = params.getAll("skill");
     const place = params.get("place") ?? "";
     const level = params.get("level") ?? "";
-    if (!roles.length || roles.length > 16 || roles.some(role => role.length > 90 || !/[a-z0-9]/i.test(role)) ||
+    const pay = params.get("pay") ?? "";
+    if (!roles.length || roles.length > 16 || roles.some(role => role.length > 90 || !/[\p{L}\p{N}]/u.test(role)) ||
       skills.length > 16 || skills.some(skill => skill.length > 50 || !/[a-z0-9]/i.test(skill)) ||
-      place.length > 90 || !["", "intern", "entry", "senior", "manager"].includes(level)) {
+      place.length > 90 || level.length > 80 || pay.length > 80) {
       return Response.json({ error: "Enter a job title or add resume skills to find matching companies." }, { status: 400 });
     }
-    return Response.json(await recommendCompanies({ roles, place, level, skills, includeRemote: true }));
+    return Response.json(await recommendCompanies({ roles, place, level, pay, skills, includeRemote: true }));
   }
   if (path === "/api/remote-status" && request.method === "GET") {
     try {

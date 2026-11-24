@@ -45,7 +45,7 @@ export function createCareerChatAgent(request) {
           summary: "Which job title should I look for? You can also enable resume details to search using your experience.",
           links: [{ text: "Set job preferences", href: "#preferences" }],
         };
-        const params = new URLSearchParams({ place: context?.place ?? "", level: context?.level ?? "" });
+        const params = new URLSearchParams({ place: context?.place ?? "", level: context?.level ?? "", pay: context?.pay ?? "" });
         roles.forEach(role => params.append("role", role));
         try {
           const { matches, checked } = await request("recommend?" + params);

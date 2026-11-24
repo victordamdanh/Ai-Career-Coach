@@ -27,6 +27,12 @@ The chat sends resume and job details only when **Include resume and job details
 - The inbox can check pasted recruiter messages. A Gmail check requires a Google Cloud web OAuth client, Gmail API enabled, this exact web origin registered, and authorization from the Gmail account. In OAuth testing mode, add the account as a test user. The demo stores the short-lived token in memory and scans recent inbox previews on demand. It shows in-app notices and does not run outside the page or send mail. Recruiter message previews can be incomplete. [Google OAuth token model](https://developers.google.com/identity/oauth2/web/guides/use-token-model)
 - Interview practice generates a role-specific question, reads it aloud, and takes a typed or dictated answer. Camera preview is local and optional. Feedback scores the transcript in five criteria for a total out of 100.
 
+## Preference suggestions
+
+Each field accepts a dropdown choice or a typed value. Location suggestions include U.S. states, the District of Columbia, Puerto Rico, and places from the [2025 Census Gazetteer](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.2025.html). The title menu includes common roles and reported titles from the [O*NET 31.0 Database](https://www.onetcenter.org/database.html) by the U.S. Department of Labor, Employment and Training Administration, used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The catalog trims and deduplicates titles, supplements them with common roles, and shortens Census place labels by removing common legal designation suffixes.
+
+Regenerate the catalog with `python3 scripts/build-preference-catalog.py /path/to/sample_of_reported_titles.csv /path/to/2025_Gaz_place_national.zip`. The salary filter compares published USD pay in the same hourly or yearly units and keeps openings with unreported or noncomparable pay.
+
 ## Dataset and evaluation
 
 The real-world dataset consists of selected, paraphrased qualifications from three federal postings. A fictional candidate is used for every case. The sample walkthroughs are reviewed reference examples, and their values serve as expectations for the deterministic score API.

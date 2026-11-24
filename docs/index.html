@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
-<link rel="stylesheet" href="./styles.css?v=d49bb9b8ba23">
-<script type="module" src="./app.mjs?v=d49bb9b8ba23"></script>
+<link rel="stylesheet" href="./styles.css?v=3d7ed6ef386c">
+<script type="module" src="./app.mjs?v=3d7ed6ef386c"></script>
 </head>
 <body>
 <header>
@@ -62,12 +62,14 @@
     <div class="page-heading"><h1 id="preferences-title" tabindex="-1">Job preferences</h1><p>Tell us what role you’re looking for or add a description for a specific opening.</p></div>
     <div class="flow-actions"><a class="button" href="#review">Continue to Resume Review</a></div>
     <div class="panel"><div class="section preferences-fields">
-      <label>Job title<input id="role" maxlength="90" placeholder="e.g. Data Analyst"></label>
-      <label>Location<input id="place" maxlength="90" placeholder="e.g. Arizona or Remote"></label>
-      <label>Level or employment type<select id="level"><option value="">Any level</option><option value="intern">Internship</option><option value="entry">Entry level</option><option value="senior">Senior</option><option value="manager">Manager</option></select></label>
-      <label>Target salary range (USD)<select id="pay"><option value="">Any range</option><option>Under $60,000</option><option>$60,000–$89,999</option><option>$90,000–$119,999</option><option>$120,000+</option></select></label>
+      <p class="hint full-width">Choose a suggestion or type your own value.</p>
+      <div><label for="role">Job title</label><div class="preference-picker"><input id="role" maxlength="90" placeholder="e.g. Data Analyst" autocomplete="off"></div></div>
+      <div><label for="place">Location</label><div class="preference-picker"><input id="place" maxlength="90" placeholder="e.g. Phoenix, AZ or Remote" autocomplete="off"></div></div>
+      <div><label for="level">Level or employment type</label><div class="preference-picker"><input id="level" maxlength="80" placeholder="e.g. Entry level or Full-time" autocomplete="off"></div></div>
+      <div><label for="pay">Target salary range (USD)</label><div class="preference-picker"><input id="pay" maxlength="80" placeholder="e.g. $80,000–$110,000" autocomplete="off"></div></div>
       <label class="full-width">Target job description<textarea id="target-description" maxlength="3000" placeholder="Optional qualifications to compare"></textarea></label>
-      <p class="hint full-width">Check pay in the official posting when the public board omits it.</p>
+      <p class="hint full-width">Openings without published salary information can still appear.</p>
+      <details class="full-width"><summary>Suggestion sources</summary><p class="hint">Reported job titles come from the U.S. Department of Labor’s <a href="https://www.onetcenter.org/database.html" target="_blank" rel="noopener noreferrer">O*NET 31.0 Database</a> under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>, with titles trimmed, deduplicated, and supplemented. U.S. place names come from the <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.2025.html" target="_blank" rel="noopener noreferrer">2025 Census Gazetteer</a>.</p></details>
     </div></div>
   </section>
 

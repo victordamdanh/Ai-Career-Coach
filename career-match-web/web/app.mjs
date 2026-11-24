@@ -4,6 +4,7 @@ import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs";
 import { attachChat } from "./chat.mjs";
 import { attachInbox } from "./inbox.mjs";
 import { canNavigateWorkflow } from "./workflow.mjs";
+import { attachPreferencePickers } from "./preference-pickers.mjs";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -240,7 +241,7 @@ function listingCard(listing) {
 }
 
 function companyQueryKey() {
-  return JSON.stringify([resume.value, $("role").value, $("place").value, $("level").value]);
+  return JSON.stringify([resume.value, $("role").value, $("place").value, $("level").value, $("pay").value]);
 }
 
 const resumeJobs = $("find-resume-jobs");
@@ -323,7 +324,7 @@ async function searchResumeCompanies(refine) {
   const baseRoles = rolesFor([]);
   const useAI = refine && text.length >= 20;
   const suggestions = useAI ? suggestJobTitles(text, title) : Promise.resolve([]);
-  const filters = { place: $("place").value.trim(), level: $("level").value };
+  const filters = { place: $("place").value.trim(), level: $("level").value.trim(), pay: $("pay").value.trim() };
 
   async function fetchGroups(roles, aiWorked = false) {
     status("matched-jobs-status", "Checking live job sources…");
@@ -604,7 +605,7 @@ function setResume(text) {
 for (const field of [$("role"), $("target-description")]) field.addEventListener("input", resetResumeReview);
 
 function savePreferences() {
-  $("query").value = [$("role").value, $("place").value, $("level").value].filter(Boolean).join(" ").slice(0, 100);
+  $("query").value = $("role").value.trim();
   completed.add("preferences");
   const description = $("target-description").value.trim();
   if (!busy && description && description !== job.value) {
@@ -632,6 +633,7 @@ const stopInterview = attachCareerSteps({
   onInterviewFeedback() { completed.add("interview"); },
 });
 syncResumePreview();
+attachPreferencePickers($);
 renderPage();
 window.addEventListener("hashchange", () => renderPage({ scroll: true }));
 
@@ -655,6 +657,7 @@ attachChat({ $, status, el, browserModel, request, json, officialLink, onDeviceO
   role: $("role").value.trim(),
   place: $("place").value.trim(),
   level: $("level").value,
+  pay: $("pay").value,
   match: lastResult,
   review: resumeReview,
 }) });

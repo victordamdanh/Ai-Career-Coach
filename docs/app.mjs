@@ -1,11 +1,12 @@
-import { createClassroomRequest } from "./request.mjs?v=d49bb9b8ba23";
+import { createClassroomRequest } from "./request.mjs?v=3d7ed6ef386c";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=d49bb9b8ba23";
-import { attachCareerSteps } from "./career-steps.mjs?v=d49bb9b8ba23";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=d49bb9b8ba23";
-import { attachChat } from "./chat.mjs?v=d49bb9b8ba23";
-import { attachInbox } from "./inbox.mjs?v=d49bb9b8ba23";
-import { canNavigateWorkflow } from "./workflow.mjs?v=d49bb9b8ba23";
+import { browserModel, createAgent } from "./agent.mjs?v=3d7ed6ef386c";
+import { attachCareerSteps } from "./career-steps.mjs?v=3d7ed6ef386c";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=3d7ed6ef386c";
+import { attachChat } from "./chat.mjs?v=3d7ed6ef386c";
+import { attachInbox } from "./inbox.mjs?v=3d7ed6ef386c";
+import { canNavigateWorkflow } from "./workflow.mjs?v=3d7ed6ef386c";
+import { attachPreferencePickers } from "./preference-pickers.mjs?v=3d7ed6ef386c";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -242,7 +243,7 @@ function listingCard(listing) {
 }
 
 function companyQueryKey() {
-  return JSON.stringify([resume.value, $("role").value, $("place").value, $("level").value]);
+  return JSON.stringify([resume.value, $("role").value, $("place").value, $("level").value, $("pay").value]);
 }
 
 const resumeJobs = $("find-resume-jobs");
@@ -325,7 +326,7 @@ async function searchResumeCompanies(refine) {
   const baseRoles = rolesFor([]);
   const useAI = refine && text.length >= 20;
   const suggestions = useAI ? suggestJobTitles(text, title) : Promise.resolve([]);
-  const filters = { place: $("place").value.trim(), level: $("level").value };
+  const filters = { place: $("place").value.trim(), level: $("level").value.trim(), pay: $("pay").value.trim() };
 
   async function fetchGroups(roles, aiWorked = false) {
     status("matched-jobs-status", "Checking live job sources…");
@@ -606,7 +607,7 @@ function setResume(text) {
 for (const field of [$("role"), $("target-description")]) field.addEventListener("input", resetResumeReview);
 
 function savePreferences() {
-  $("query").value = [$("role").value, $("place").value, $("level").value].filter(Boolean).join(" ").slice(0, 100);
+  $("query").value = $("role").value.trim();
   completed.add("preferences");
   const description = $("target-description").value.trim();
   if (!busy && description && description !== job.value) {
@@ -634,6 +635,7 @@ const stopInterview = attachCareerSteps({
   onInterviewFeedback() { completed.add("interview"); },
 });
 syncResumePreview();
+attachPreferencePickers($);
 renderPage();
 window.addEventListener("hashchange", () => renderPage({ scroll: true }));
 
@@ -657,6 +659,7 @@ attachChat({ $, status, el, browserModel, request, json, officialLink, onDeviceO
   role: $("role").value.trim(),
   place: $("place").value.trim(),
   level: $("level").value,
+  pay: $("pay").value,
   match: lastResult,
   review: resumeReview,
 }) });

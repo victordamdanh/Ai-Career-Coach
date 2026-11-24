@@ -78,6 +78,14 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
 .preferences-fields,.account-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px}
 .full-width{grid-column:1/-1}
 .preferences-fields input,.preferences-fields select,.preferences-fields textarea,.account-fields input{margin-top:4px}
+.preference-picker{position:relative}
+.preference-picker input{padding-right:44px;margin-bottom:9px}
+.preference-picker button{position:absolute;top:1px;right:1px;min-height:40px;width:40px;border:0;background:transparent;color:var(--green);padding:0;font-size:1.05rem}
+.preference-picker button:hover{background:#e6eee6}
+.preference-options{position:absolute;top:100%;left:0;right:0;z-index:3;max-height:15rem;overflow:auto;margin:4px 0 0;padding:4px;list-style:none;background:#fff;border:1px solid #abc0b3;border-radius:8px;box-shadow:0 8px 18px #14362b20}
+.preference-options [role=option]{padding:8px;border-radius:4px;cursor:pointer}
+.preference-options [role=option]:hover,.preference-options [aria-selected=true]{background:#e6f0e8;color:var(--green)}
+.preference-options .picker-message{padding:8px;color:var(--muted);font-size:.9rem}
 .method{margin-top:17px}
 .method p{color:var(--muted);font-size:.91rem;margin-top:7px;max-width:75ch}
 .flow-actions{position:sticky;top:0;z-index:1;display:flex;justify-content:flex-end;background:#f0f4ef;padding:8px 0;margin-bottom:12px}

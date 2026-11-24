@@ -1,4 +1,4 @@
-import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=d49bb9b8ba23";
+import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=3d7ed6ef386c";
 
 export async function extractResume(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Use a resume file up to 5 MB.");

@@ -14,11 +14,14 @@ const files = {
   "/chat.mjs": ["chat.mjs", "text/javascript; charset=utf-8"],
   "/inbox.mjs": ["inbox.mjs", "text/javascript; charset=utf-8"],
   "/career-steps.mjs": ["career-steps.mjs", "text/javascript; charset=utf-8"],
+  "/job-preferences.mjs": ["job-preferences.mjs", "text/javascript; charset=utf-8"],
+  "/preference-pickers.mjs": ["preference-pickers.mjs", "text/javascript; charset=utf-8"],
+  "/preference-catalog.mjs": ["preference-catalog.mjs", "text/javascript; charset=utf-8"],
 };
 const assets = Object.fromEntries(await Promise.all(Object.entries(files).map(async ([route, [name, type]]) => [
   route, { type, body: await read("web/" + name) },
 ])));
-const sources = await Promise.all(["src/data.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
+const sources = await Promise.all(["src/data.mjs", "web/job-preferences.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
 const worker = sources.map(source => source.replace(/^import .*?\n/gm, "")).join("\n") + `
 const assets = ${JSON.stringify(assets)};
 export default {
