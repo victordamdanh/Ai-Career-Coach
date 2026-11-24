@@ -1,0 +1,61 @@
+:root{color-scheme:light;font-family:"Avenir Next","Segoe UI",sans-serif;color:#152a26;background:#f0f4ef;line-height:1.5;--muted:#495c54;--green:#155b49;--line:#d8e2d9}
+*{box-sizing:border-box}
+body{margin:0}
+a{color:var(--green);text-underline-offset:3px}
+.shell{width:min(1100px,calc(100% - 44px));margin-inline:auto}
+header{background:#fff;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:64px}
+.brand{display:flex;align-items:center;gap:.65rem;font-weight:760;text-decoration:none;color:inherit}
+.brand span{display:grid;place-items:center;background:var(--green);color:white;border-radius:8px;width:31px;height:31px;font-size:1.3rem}
+.intro{padding:32px 0 24px}
+h1{font:500 clamp(2.8rem,7vw,5rem)/.95 Georgia,serif;letter-spacing:-.07em;margin:0 0 15px}
+p{margin:0}
+.intro p{font-size:1.06rem;color:var(--muted)}
+.workspace{display:grid;grid-template-columns:.95fr 1.05fr;gap:17px;align-items:start}
+.panel{border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 7px 22px #14362b08;min-width:0}
+.heading{padding:16px 19px 13px;border-bottom:1px solid var(--line)}
+.heading p,.hint,#method p{color:var(--muted);font-size:.9rem}
+h2{font-size:1.25rem;letter-spacing:-.03em;margin:0 0 2px}
+h3{font-size:1.04rem;margin:11px 0 5px}
+.section{padding:15px 19px 18px}
+label{display:block;font-size:.91rem;font-weight:710;margin-bottom:4px}
+input,select,textarea{display:block;width:100%;border:1px solid #cbd8ce;background:#fbfcfa;border-radius:7px;font:inherit;color:inherit;padding:8px 10px;margin-bottom:9px}
+input,select{min-height:42px}
+textarea{resize:vertical;min-height:85px}
+#resume{min-height:110px}
+#draft{min-height:160px}
+.search-row,.buttons{display:flex;gap:7px;align-items:start}
+.search-row button{flex:none}
+.buttons{flex-wrap:wrap}
+button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:7px;border:1px solid var(--green);background:var(--green);color:white;padding:7px 11px;font:inherit;font-size:.9rem;font-weight:700;text-decoration:none;cursor:pointer}
+button:hover:not(:disabled),.button:hover{filter:brightness(.85)}
+button:disabled{opacity:.53;cursor:default}
+.secondary{background:#fff;color:var(--green)}
+:focus-visible{outline:3px solid #278b73;outline-offset:2px}
+.hint{margin:4px 0 7px}
+.hint:empty{display:none}
+.error{color:#8b2a24}
+.report{grid-column:2}
+.draft-panel{grid-column:1;grid-row:2}
+.report-head{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.score{display:grid;place-items:center;min-width:55px;min-height:48px;border-radius:8px;background:#e6f0e8;color:var(--green);font-size:1.4rem;font-weight:750}
+.empty{padding:20px;border:1px dashed #cbd8ce;border-radius:8px;color:var(--muted)}
+details{border-top:1px solid var(--line);padding:8px 0}
+summary{cursor:pointer;font-size:.93rem}
+summary small{display:block;color:var(--muted);margin-left:15px}
+.tag,.breakdown span{display:inline-block;border-radius:4px;padding:2px 5px;font-size:.78rem;font-weight:700;background:#e7eee7}
+.match{background:#e1f1e6;color:#1c533c}
+.partial{background:#faefd6;color:#714d16}
+.gap{background:#f2e8e4;color:#783c30}
+.evidence{background:#f1f5f1;padding:6px 8px;margin:6px 0 2px 10px;font-size:.88rem;overflow-wrap:anywhere}
+.list-description{white-space:pre-line;max-height:230px;overflow:auto;margin:7px 0 10px;font-size:.9rem}
+.breakdown{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px}
+ol{padding-left:20px;margin:5px 0;font-size:.93rem}
+#method{padding:23px 0 35px}
+#method ul{display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0}
+#method li{border:1px solid var(--line);border-radius:5px;background:white;padding:3px 7px;font-size:.88rem}
+@media(max-width:760px){.workspace{grid-template-columns:1fr}.report,.draft-panel{grid-column:auto;grid-row:auto}.shell{width:calc(100% - 28px)}}
+
+.account{margin-top:17px}.account-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.account-fields input{margin-top:4px}#saved-jobs:empty{display:none}
+
+.steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.steps a{border:1px solid var(--line);background:white;border-radius:6px;padding:5px 9px}.stage{margin-bottom:17px}#interviews{margin-top:17px}#camera{width:min(440px,100%);border-radius:10px;background:#132620}#question{margin:8px 0;font-weight:660}#answer{margin-top:4px}#feedback-result p,#resume-analysis p{margin-top:6px}#extraction{margin-top:8px}
