@@ -25,6 +25,12 @@ test("typed and preset work preferences match the same published values", () => 
   assert.equal(matchesJobLocation("Phoenix, Arizona", "Phoenix, AZ"), true);
   assert.equal(matchesJobLocation("Portland, ME", "Portland, OR"), false);
   assert.equal(matchesJobLocation("Montréal, Canada", "Montreal, Québec, Canada"), true);
+  assert.equal(matchesJobLocation("Portland, ME", "Portland, OR; Augusta, ME"), false);
+  assert.equal(matchesJobLocation("Washington", "Washington, D.C."), false);
+  assert.equal(matchesJobLocation("New York, NY", "New York City, New York"), true);
+  assert.equal(matchesJobLocation("Remote, USA", "Remote - United States"), true);
+  assert.equal(matchesJobLocation("Remote, USA", "Remote - Brazil"), false);
+  assert.equal(matchesJobLocation("Arizona or Remote", "Remote - USA"), true);
 });
 
 test("custom and preset salaries compare equivalent published pay without excluding unknown pay", () => {

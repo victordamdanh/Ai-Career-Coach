@@ -1,4 +1,4 @@
-import { api } from "./api.mjs?v=3d7ed6ef386c";
+import { api } from "./api.mjs?v=2f6b9fac912e";
 
 export function createClassroomRequest() {
   let candidate = null;

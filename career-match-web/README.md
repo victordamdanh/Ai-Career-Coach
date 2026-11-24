@@ -29,6 +29,8 @@ The chat sends resume and job details only when **Include resume and job details
 
 ## Preference suggestions
 
+Find Jobs uses resume skills and related job titles to make a shortlist, while requiring the selected location for every result. Select an opening to see resume alignment and supporting evidence on the Job Match page.
+
 Each field accepts a dropdown choice or a typed value. Location suggestions include U.S. states, the District of Columbia, Puerto Rico, and places from the [2025 Census Gazetteer](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.2025.html). The title menu includes common roles and reported titles from the [O*NET 31.0 Database](https://www.onetcenter.org/database.html) by the U.S. Department of Labor, Employment and Training Administration, used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The catalog trims and deduplicates titles, supplements them with common roles, and shortens Census place labels by removing common legal designation suffixes.
 
 Regenerate the catalog with `python3 scripts/build-preference-catalog.py /path/to/sample_of_reported_titles.csv /path/to/2025_Gaz_place_national.zip`. The salary filter compares published USD pay in the same hourly or yearly units and keeps openings with unreported or noncomparable pay.

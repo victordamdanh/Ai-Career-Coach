@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkRemoteListing, companyBoards, recommendCompanies } from "../src/listings.mjs";
+import { checkRemoteListing, companyBoards, fetchListings, recommendCompanies } from "../src/listings.mjs";
 import { resumeExcerpt, resumeLimit, resumeProfile, reviewResume } from "../web/resume-review.mjs";
 
 test("scoring always produces all five categories for typical resume styles", () => {
@@ -81,4 +81,27 @@ test("a remote job selected for matching is checked by provider ID", async () =>
   };
   assert.equal(await checkRemoteListing("84", fetcher), "closed");
   await assert.rejects(checkRemoteListing("https://somewhere.invalid/", fetcher), /valid listing/);
+});
+
+test("a broad shortlist includes alternate titles only inside the selected location and filters", async () => {
+  const job = (id, jobTitle, jobGeo, jobLevel = "Junior", salaryMin = 85000) => ({
+    id, jobTitle, jobGeo, jobLevel, companyName: "Employer " + id, url: "https://jobicy.com/jobs/" + id + "-opening",
+    jobDescription: "<p>Build user interfaces with React and improve web accessibility.</p>",
+    salaryMin, salaryMax: salaryMin + 10000, salaryCurrency: "USD", salaryPeriod: "yearly",
+  });
+  const fixture = [job(1, "Front-End Developer", "Portland, Maine"), job(2, "UI Developer", "Portland, ME"),
+    job(3, "UI Developer", "Portland, Oregon; Augusta, Maine"), job(4, "UI Developer", "Portland, ME", "Senior"),
+    job(5, "UI Developer", "Portland, ME", "Junior", 120000), job(6, "Marketing Intern", "Portland, ME")];
+  const result = await recommendCompanies({ roles: ["Frontend Developer"], place: "Portland, ME", level: "Entry level", pay: "$80k–$100k",
+    includeRemote: true, skills: ["React"] }, async url => Response.json({ jobs: new URL(url).hostname === "jobicy.com" ? fixture : [] }));
+  assert.deepEqual(result.matches.flatMap(group => group.jobs.map(listing => listing.id)), [1, 2]);
+});
+
+test("single-company search also enforces the selected location and type", async () => {
+  const job = (id, place, level) => ({ id, title: `${level} Data Analyst`, location: { name: place },
+    absolute_url: `https://job-boards.greenhouse.io/chime/jobs/${id}`, content: "<p>Build and maintain data reports.</p>" });
+  const fixture = [job(1, "Phoenix, Arizona", "Junior"), job(2, "Tucson, AZ", "Junior"), job(3, "Phoenix, AZ", "Senior")];
+  const result = await fetchListings("chime", "data analyst", async () => Response.json({ jobs: fixture }), { place: "Phoenix, AZ", level: "Entry level" });
+  assert.equal(result.total, 1);
+  assert.deepEqual(result.jobs.map(listing => listing.id), [1]);
 });

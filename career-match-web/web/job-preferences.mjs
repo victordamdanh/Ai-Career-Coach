@@ -41,6 +41,13 @@ function containsWords(text, phrase) {
   return (" " + text + " ").includes(" " + phrase + " ");
 }
 
+function locationWords(value) {
+  return preferenceWords(value)
+    .replace(/\b(?:united states(?: of america)?|u s a?|usa|us)\b/g, "united states")
+    .replace(/\b(?:new york city|nyc)\b/g, "new york")
+    .replace(/\bd c\b/g, "dc");
+}
+
 export function matchesJobLevel(preference, description) {
   const term = preferenceWords(preference);
   if (!term || ["any", "any level", "any employment type"].includes(term)) return true;
@@ -52,15 +59,21 @@ export function matchesJobLevel(preference, description) {
 }
 
 export function matchesJobLocation(preference, location) {
-  const term = preferenceWords(preference);
+  const choices = preference.split(/\s+(?:or|\/|\|)\s+/i);
+  if (choices.length > 1) return choices.some(choice => matchesJobLocation(choice, location));
+  const term = locationWords(preference);
   if (!term || term === "any location" || term === "anywhere") return true;
-  const job = preferenceWords(location);
-  const cityAndState = preference.trim().match(/^(.+),\s*(.+)$/);
-  const region = cityAndState ? preferenceWords(cityAndState[2]) : term;
+  const job = locationWords(location);
+  const cityAndState = preference.trim().match(/^(.+),\s*(.+)$/) ?? preference.trim().match(/^(.+)\s+([A-Z]{2})$/);
+  const region = cityAndState ? locationWords(cityAndState[2]) : term;
   const state = Object.keys(states).find(code => code.toLowerCase() === region || preferenceWords(states[code]) === region);
   if (state) {
-    const regionFound = containsWords(job, preferenceWords(states[state])) || (location.match(/\b[A-Z]{2}\b/g) ?? []).includes(state);
-    return regionFound && (!cityAndState || containsWords(job, preferenceWords(cityAndState[1])));
+    const name = preferenceWords(states[state]);
+    const city = cityAndState ? locationWords(cityAndState[1]) + " " : "";
+    const stateText = state === "WA" ? job.replace(/\bwashington (?:dc|district of columbia)\b/g, "") : job;
+    const hasCode = (location.match(/\b[A-Z]{2}\b/g) ?? []).includes(state) ||
+      (state === "DC" && /\bD\.\s*C\./i.test(location));
+    return containsWords(stateText, city + name) || (hasCode && containsWords(stateText, city + state.toLowerCase()));
   }
   return term.split(" ").every(word => containsWords(job, word));
 }

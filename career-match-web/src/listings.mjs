@@ -65,16 +65,19 @@ function toListing(job, company) {
   return listing;
 }
 
-export async function fetchListings(company, phrase, fetcher = fetch) {
+export async function fetchListings(company, phrase, fetcher = fetch, { place = "", level = "", pay = "" } = {}) {
   const entries = await boardJobs(company, true, fetcher);
   const query = phrase.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const found = entries.filter(job => {
-    const terms = [job.title, job.location?.name, ...(job.departments ?? []).map(dept => dept.name)]
+  const targetPay = salaryTarget(pay);
+  const jobs = [];
+  for (const entry of entries) {
+    const listing = toListing(entry, company);
+    if (!listing?.description || !meetsPreferences(listing, place, level, targetPay)) continue;
+    const terms = [listing.title, listing.location, ...(entry.departments ?? []).map(dept => dept.name)]
       .join(" ").toLowerCase();
-    return query.every(word => terms.includes(word));
-  });
-  const jobs = found.slice(0, 10).map(job => toListing(job, company)).filter(listing => listing?.description);
-  return { company: companyBoards[company], total: found.length, jobs };
+    if (query.every(word => terms.includes(word))) jobs.push(listing);
+  }
+  return { company: companyBoards[company], total: jobs.length, jobs };
 }
 
 export async function fetchListing(company, id, fetcher = fetch) {
@@ -88,6 +91,29 @@ export async function fetchListing(company, id, fetcher = fetch) {
 }
 
 const titleKey = text => " " + preferenceWords(text) + " ";
+const roleKey = text => titleKey(text).replace(/\b(front|back) end\b/g, "$1end").replace(/\bfull stack\b/g, "fullstack");
+const relatedTitles = [
+  ["data analyst", "analytics analyst", "business intelligence analyst", "reporting analyst", "bi analyst", "business analyst"],
+  ["data engineer", "analytics engineer", "data warehouse engineer", "data platform engineer"],
+  ["software engineer", "software developer", "application developer", "software development engineer"],
+  ["frontend developer", "frontend engineer", "ui developer"],
+  ["backend developer", "backend engineer", "server side engineer"],
+  ["ux designer", "user experience designer", "product designer", "interaction designer"],
+  ["customer support representative", "customer service representative", "customer support specialist", "customer service associate"],
+  ["administrative assistant", "office assistant", "administrative coordinator"],
+].map(group => group.map(roleKey));
+
+function matchesTitle(title, role) {
+  if (title.includes(role)) return true;
+  const words = role.trim().split(" ");
+  return words.length > 1 && words.every(word => title.includes(" " + word + " "));
+}
+
+function meetsPreferences(listing, place, level, targetPay) {
+  return matchesJobLocation(place, listing.location) &&
+    matchesJobLevel(level, listing.title + " " + (listing.seniority || "")) &&
+    matchesAdvertisedPay(targetPay, listing.salary);
+}
 
 async function remotePage(params, fetcher) {
   const url = remoteEndpoint + "?" + params;
@@ -148,7 +174,8 @@ export async function checkRemoteListing(id, fetcher = fetch) {
 }
 
 export async function recommendCompanies({ roles, place, level, pay = "", skills = [], includeRemote = false }, fetcher = fetch) {
-  const query = [...new Set(roles.map(titleKey))].filter(role => role.trim());
+  const query = [...new Set(roles.flatMap(role => [role, role.replace(/\s*\([^()]+\)\s*$/, "")]).map(roleKey))].filter(role => role.trim());
+  const related = [...new Set(relatedTitles.filter(group => group.some(role => query.some(term => matchesTitle(term, role)))).flat())];
   const targetPay = salaryTarget(pay);
   const sources = Object.entries(companyBoards).map(([company, name]) => [name, async () => {
     const jobs = await boardJobs(company, false, fetcher);
@@ -167,13 +194,11 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
     }
     checked.push(name);
     for (const listing of result.value) {
-      const title = titleKey(listing.title);
-      const rank = query.reduce((total, role, position) => title.includes(role) ? total + query.length - position : total, 0);
-      if (!rank) continue;
-      if (level && !matchesJobLevel(level, [listing.title, listing.seniority].filter(Boolean).join(" "))) continue;
-      if (place && !matchesJobLocation(place, listing.location)) continue;
-      if (!matchesAdvertisedPay(targetPay, listing.salary)) continue;
-      const text = titleKey(listing.title + " " + (listing.description ?? ""));
+      const title = roleKey(listing.title);
+      const directRank = query.reduce((total, role, position) => matchesTitle(title, role) ? total + query.length - position : total, 0);
+      const rank = directRank ? directRank + 1 : Number(related.some(role => matchesTitle(title, role)));
+      if ((query.length && !rank) || !meetsPreferences(listing, place, level, targetPay)) continue;
+      const text = skills.length ? titleKey(listing.title + " " + (listing.description ?? "")) : "";
       const matchedSkills = skills.filter(skill => text.includes(titleKey(skill)));
       const companyKey = titleKey(listing.company);
       const listingKey = (listing.provider ?? "greenhouse") + "/" + listing.id;

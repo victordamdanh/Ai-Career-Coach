@@ -1,5 +1,5 @@
-import { checkRemoteListing, companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs?v=3d7ed6ef386c";
-import { jobs, resume, description, walkthrough } from "./data.mjs?v=3d7ed6ef386c";
+import { checkRemoteListing, companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs?v=2f6b9fac912e";
+import { jobs, resume, description, walkthrough } from "./data.mjs?v=2f6b9fac912e";
 
 const categoriesList = ["skills", "experience", "education", "certifications", "projects"];
 const priorities = { required: 2, preferred: 1 };
@@ -30,10 +30,10 @@ export async function api(request) {
     const place = params.get("place") ?? "";
     const level = params.get("level") ?? "";
     const pay = params.get("pay") ?? "";
-    if (!roles.length || roles.length > 16 || roles.some(role => role.length > 90 || !/[\p{L}\p{N}]/u.test(role)) ||
+    if (roles.length > 16 || roles.some(role => role.length > 90 || !/[\p{L}\p{N}]/u.test(role)) ||
       skills.length > 16 || skills.some(skill => skill.length > 50 || !/[a-z0-9]/i.test(skill)) ||
       place.length > 90 || level.length > 80 || pay.length > 80) {
-      return Response.json({ error: "Enter a job title or add resume skills to find matching companies." }, { status: 400 });
+      return Response.json({ error: "Check the job search fields and try again." }, { status: 400 });
     }
     return Response.json(await recommendCompanies({ roles, place, level, pay, skills, includeRemote: true }));
   }
@@ -57,11 +57,14 @@ export async function api(request) {
     const params = new URL(request.url).searchParams;
     const company = params.get("company") ?? "";
     const phrase = params.get("q") ?? "";
-    if (!Object.hasOwn(companyBoards, company) || phrase.length > 100) {
+    const place = params.get("place") ?? "";
+    const level = params.get("level") ?? "";
+    const pay = params.get("pay") ?? "";
+    if (!Object.hasOwn(companyBoards, company) || phrase.length > 100 || place.length > 90 || level.length > 80 || pay.length > 80) {
       return Response.json({ error: "Choose a supported company and use up to 100 characters." }, { status: 400 });
     }
     try {
-      return Response.json(await fetchListings(company, phrase));
+      return Response.json(await fetchListings(company, phrase, fetch, { place, level, pay }));
     } catch {
       return Response.json({ error: "This company career board is temporarily unavailable. Try another company or use a sample." }, { status: 502 });
     }
