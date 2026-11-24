@@ -1,4 +1,4 @@
-import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget } from "./job-preferences.mjs?v=8ee896347678";
+import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget } from "./job-preferences.mjs?v=ba1adc8967a0";
 
 export const companyBoards = {
   anthropic: "Anthropic", airbnb: "Airbnb", cloudflare: "Cloudflare", databricks: "Databricks",
@@ -102,6 +102,7 @@ const relatedTitles = [
   ["customer support representative", "customer service representative", "customer support specialist", "customer service associate"],
   ["administrative assistant", "office assistant", "administrative coordinator"],
 ].map(group => group.map(roleKey));
+
 function matchesTitle(title, role) {
   if (title.includes(role)) return true;
   const words = role.trim().split(" ");
@@ -184,7 +185,7 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
   const results = await Promise.allSettled(sources.map(([, load]) => load()));
   const checked = [];
   const unavailable = [];
-  const companies = new Map();
+  const candidates = [];
   for (const [index, result] of results.entries()) {
     const name = sources[index][0];
     if (result.status === "rejected") {
@@ -196,7 +197,21 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
       const title = roleKey(listing.title);
       const directRank = query.reduce((total, role, position) => matchesTitle(title, role) ? total + query.length - position : total, 0);
       const rank = directRank ? directRank + 1 : Number(related.some(role => matchesTitle(title, role)));
-      if ((query.length && !rank) || !meetsPreferences(listing, place, level, targetPay)) continue;
+      if (query.length && !rank) continue;
+      candidates.push({ listing, rank });
+    }
+  }
+  // Keep the chosen filters when anything matches them. If nothing does, relax the
+  // location first, then level and pay, and report which filters were relaxed.
+  const tiers = [{ place, level, targetPay, relaxed: [] }];
+  if (place) tiers.push({ place: "", level, targetPay, relaxed: ["location"] });
+  if (level || targetPay) tiers.push({ place: "", level: "", targetPay: undefined, relaxed: [...(place ? ["location"] : []), ...(level ? ["level"] : []), ...(targetPay ? ["salary"] : [])] });
+  let companies = new Map();
+  let relaxed = [];
+  for (const tier of tiers) {
+    companies = new Map();
+    for (const { listing, rank } of candidates) {
+      if (!meetsPreferences(listing, tier.place, tier.level, tier.targetPay)) continue;
       const text = skills.length ? titleKey(listing.title + " " + (listing.description ?? "")) : "";
       const matchedSkills = skills.filter(skill => text.includes(titleKey(skill)));
       const companyKey = titleKey(listing.company);
@@ -205,10 +220,14 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
       if (!openings.has(listingKey)) openings.set(listingKey, { listing: { ...listing, matchedSkills }, rank: rank * 10 + matchedSkills.length });
       companies.set(companyKey, openings);
     }
+    relaxed = tier.relaxed;
+    if (companies.size) break;
   }
+  if (!companies.size) relaxed = [];
   const matches = [...companies.values()].map(openings => {
     const rows = [...openings.values()].sort((a, b) => b.rank - a.rank || a.listing.title.localeCompare(b.listing.title));
     return { company: rows[0].listing.company, jobs: rows.map(row => row.listing), rank: rows[0].rank, total: rows.length };
-  }).sort((a, b) => b.rank - a.rank || b.total - a.total || a.company.localeCompare(b.company));
-  return { matches, checked, unavailable };
+  });
+  matches.sort((a, b) => b.rank - a.rank || b.total - a.total || a.company.localeCompare(b.company));
+  return { matches, checked, unavailable, relaxed };
 }
