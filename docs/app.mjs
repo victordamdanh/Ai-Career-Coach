@@ -2,6 +2,7 @@ import { createClassroomRequest } from "./request.mjs";
 const classroomRequest = createClassroomRequest();
 import { browserModel, createAgent } from "./agent.mjs";
 import { attachCareerSteps } from "./career-steps.mjs";
+import { attachChat } from "./chat.mjs";
 import { attachInbox } from "./inbox.mjs";
 
 const $ = id => document.getElementById(id);
@@ -15,6 +16,40 @@ const body = $("result");
 const labels = { skills: "Technical skills", experience: "Experience", education: "Education", certifications: "Certifications", projects: "Projects", match: "Match", partial: "Partial", gap: "Gap" };
 let dataset, target, lastResult, generator;
 let busy = false;
+
+const pages = new Map([...document.querySelectorAll("[data-page]")].map(page => [page.dataset.page, page]));
+const aliases = { "report-title": "match", "search-title": "jobs", "interviews": "interview", "method": "match" };
+const navigation = $("page-nav");
+let currentPage;
+
+function renderPage({ scroll = false } = {}) {
+  const hash = window.location.hash.slice(1);
+  const name = Object.hasOwn(aliases, hash) ? aliases[hash] : hash;
+  const next = pages.has(name) ? name : "upload";
+  const changed = currentPage !== next;
+  for (const [pageName, page] of pages) page.hidden = pageName !== next;
+  navigation.hidden = next === "upload";
+  for (const link of navigation.querySelectorAll("a")) {
+    if (link.hash === "#" + next) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  if (changed && currentPage === "interview") stopInterview();
+  currentPage = next;
+  const heading = pages.get(next).querySelector("h1");
+  document.title = next === "upload" ? "AI Career Match" : heading.textContent + " | AI Career Match";
+  if (hash === "features") {
+    $("features-title").focus({ preventScroll: true });
+    $("features").scrollIntoView();
+  } else if (scroll && changed) {
+    window.scrollTo(0, 0);
+    heading.focus({ preventScroll: true });
+  }
+  if (hash === "method") document.querySelector(".method").open = true;
+}
+
+function goTo(page) {
+  window.location.hash = page;
+}
 
 function el(tag, text, className) {
   const node = document.createElement(tag);
@@ -36,7 +71,7 @@ function status(id, message = "", error = false) {
 async function request(path, options) {
   const response = await classroomRequest(path, options);
   const value = await response.json();
-  if (!response.ok) throw new Error(value.error || "The request failed. Try again.");
+  if (!response.ok) throw Object.assign(new Error(value.error || "The request failed. Try again."), { status: response.status });
   return value;
 }
 function json(method, data) {
@@ -47,8 +82,10 @@ function sample() {
 }
 function updateButtons() {
   live.disabled = busy || !dataset;
-  walk.disabled = busy || !sample() || job.value !== sample().description || resume.value !== dataset.resume;
+  walk.disabled = busy || !sample() || job.value !== sample().description ;
   $("draft-button").disabled = busy || !target || !lastResult;
+  $("draft-instructions").hidden = !!lastResult;
+  $("application-next").hidden = !target;
 }
 function clearReport() {
   lastResult = undefined;
@@ -62,6 +99,7 @@ function clearReport() {
 function setTarget(listing) {
   target = listing;
   $("application").hidden = !listing;
+  $("application-empty").hidden = !!listing;
   $("draft-caption").textContent = listing ? listing.title + " · " + listing.company : "";
   $("save-job").disabled = !listing;
   if (listing) $("employer").href = listing.url;
@@ -105,7 +143,7 @@ function chooseListing(listing) {
   job.value = listing.excerpt;
   setTarget(listing);
   status("status");
-  job.focus();
+  goTo("match");
 }
 
 function chooseSample() {
@@ -113,7 +151,6 @@ function chooseSample() {
   $("source").replaceChildren();
   if (entry) {
     $("source").append(officialLink(entry.url, entry.source), " · Selected duties and qualifications");
-    resume.value = dataset.resume;
     job.value = entry.description;
   } else {
     job.value = "";
@@ -123,6 +160,7 @@ function chooseSample() {
 }
 select.addEventListener("change", chooseSample);
 for (const field of [resume, job]) field.addEventListener("input", () => {
+  if (field === resume) syncResumePreview();
   if (field === job && target) setTarget(undefined);
   clearReport();
   status("status");
@@ -149,6 +187,11 @@ function render(result, note) {
   const steps = el("ol");
   result.actions.forEach(action => steps.append(el("li", action)));
   body.append(el("h3", "Five next steps"), steps);
+  if (result.mode !== "live") {
+    const example = el("details");
+    example.append(el("summary", "Fictional resume used in this walkthrough"), el("p", dataset.resume, "evidence sample-text"));
+    body.append(example);
+  }
   if (note) body.append(el("p", note, "hint"));
 }
 async function run(task) {
@@ -243,8 +286,8 @@ async function loadAccount() {
   $("load-resume").disabled = !data.candidate?.resume;
   $("load-resume").onclick = () => {
     if (busy) return;
-    resume.value = data.candidate.resume;
-    clearReport();
+    setResume(data.candidate.resume);
+    goTo("upload");
   };
   $("saved-jobs").replaceChildren();
   for (const listing of data.jobs) {
@@ -280,27 +323,27 @@ $("delete-account").addEventListener("click", async () => {
 });
 loadAccount().catch(error => status("account-status", error.message, true));
 
-try {
-  dataset = await request("dataset");
-  for (const entry of dataset.jobs) {
-    const option = el("option", entry.title);
-    option.value = entry.id;
-    select.append(option);
-  }
-  const custom = el("option", "Use my own documents");
-  custom.value = "";
-  select.append(custom);
-  select.disabled = false;
-  chooseSample();
-} catch (error) {
-  status("status", error.message, true);
+
+function syncResumePreview() {
+  $("extracted").value = resume.value;
+  $("extraction").hidden = !resume.value;
+  $("review-resume-note").textContent = resume.value.trim().length >= 20 ? "Your resume is ready to review." : "Upload a resume or use the sample to get started.";
+  $("resume-analysis").replaceChildren();
+  status("review-status");
 }
 
-attachCareerSteps({ $, status, el, browserModel, onResume(text) {
-  if (busy) return;
+function setResume(text) {
   resume.value = text;
   resume.dispatchEvent(new Event("input"));
-}, onPreferences(description, query) {
+}
+
+$("use-sample-resume").addEventListener("click", () => {
+  $("file").value = "";
+  setResume(dataset.resume);
+  status("upload-status", "Sample resume loaded. You can review its text before continuing.");
+});
+
+const stopInterview = attachCareerSteps({ $, status, el, browserModel, onResume: setResume, onPreferences(description, query) {
   if (busy) return;
   $("query").value = query;
   if (description) {
@@ -308,7 +351,11 @@ attachCareerSteps({ $, status, el, browserModel, onResume(text) {
     chooseSample();
     job.value = description;
   }
+  goTo(description ? "match" : "jobs");
 } });
+syncResumePreview();
+renderPage();
+window.addEventListener("hashchange", () => renderPage({ scroll: true }));
 
 $("packet").addEventListener("click", async () => {
   if (!target) return;
@@ -323,3 +370,26 @@ $("packet").addEventListener("click", async () => {
   } catch { status("draft-status", "Clipboard access is unavailable. Copy the draft and fill the employer form directly.", true); }
 });
 attachInbox({ $, status, el });
+
+attachChat({ $, status, el, browserModel, request, json, getContext: () => ({
+  resume: resume.value.trim().slice(0, 2200),
+  job: job.value.trim().slice(0, 1300),
+  role: $("role").value.trim(),
+}) });
+
+try {
+  dataset = await request("dataset");
+  for (const entry of dataset.jobs) {
+    const option = el("option", entry.title);
+    option.value = entry.id;
+    select.append(option);
+  }
+  const custom = el("option", "Use my own documents");
+  custom.value = "";
+  select.append(custom);
+  select.disabled = false;
+  if (!target && !job.value) chooseSample();
+  $("use-sample-resume").disabled = false;
+} catch (error) {
+  status("status", error.message, true);
+}

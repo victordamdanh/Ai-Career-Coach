@@ -43,6 +43,7 @@ export function detectInvitation(text) {
 
 export function attachCareerSteps({ $, status, el, browserModel, onResume, onPreferences }) {
   let cameraStream;
+  let recognition;
   let question = "";
   let interviewBusy = false;
 
@@ -65,7 +66,6 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
   $("use-preferences").addEventListener("click", () => {
     const query = [$("role").value, $("place").value, $("level").value].filter(Boolean).join(" ").slice(0, 100);
     onPreferences($("target-description").value.trim(), query);
-    document.getElementById($("target-description").value.trim() ? "compare-title" : "search-title").scrollIntoView({ block: "nearest" });
   });
 
   async function modelJson(statusId, prompt, input) {
@@ -77,16 +77,17 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
   $("analyze-resume").addEventListener("click", async event => {
     const button = event.currentTarget;
     const resume = $("resume").value.trim();
-    if (resume.length < 20) return status("upload-status", "Upload or paste a readable resume first.", true);
+    if (resume.length < 20) return status("review-status", "Upload or paste a readable resume first.", true);
     button.disabled = true;
-    status("upload-status", "Preparing the language model…");
+    status("review-status", "Preparing the language model…");
     try {
-      const result = await modelJson("upload-status", 'Return JSON with "criteria", an array containing exactly Organization, Clarity, Impact, Relevance and Skills. For each return {"name":"Organization","points":12,"explanation":"one evidence-based sentence"}. Score each 0–20. 0–4 little usable evidence, 5–8 major improvement needed, 9–12 adequate, 13–16 strong, 17–20 excellent. Also return "strengths" and "improvements" arrays of three short strings each. Never invent experience or results.', { resume, role: $("role").value, job: $("target-description").value });
+      const result = await modelJson("review-status", 'Return JSON with "criteria", an array containing exactly Organization, Clarity, Impact, Relevance and Skills. For each return {"name":"Organization","points":12,"explanation":"one evidence-based sentence"}. Score each 0–20. 0–4 little usable evidence, 5–8 major improvement needed, 9–12 adequate, 13–16 strong, 17–20 excellent. Also return "strengths" and "improvements" arrays of three short strings each. Never invent experience or results.', { resume, role: $("role").value, job: $("target-description").value });
       const validList = value => Array.isArray(value) && value.length === 3 && value.every(item => typeof item === "string" && item.length <= 400);
       if (!Array.isArray(result.criteria) || result.criteria.length !== 5 || new Set(result.criteria.map(item => item.name)).size !== 5 ||
         !result.criteria.every(item => criteria.includes(item.name) && Number.isInteger(item.points) && item.points >= 0 &&
         item.points <= 20 && typeof item.explanation === "string" && item.explanation.length <= 400) ||
         !validList(result.strengths) || !validList(result.improvements)) throw new Error("The model returned an incomplete rubric. Try again with a shorter resume.");
+      if ($("resume").value.trim() !== resume) return;
       const total = result.criteria.reduce((sum, item) => sum + item.points, 0);
       const panel = $("resume-analysis");
       panel.replaceChildren(el("h3", "Resume quality · " + total + "/100"));
@@ -96,9 +97,9 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
         entries.forEach(item => list.append(el("li", item)));
         panel.append(el("h3", caption), list);
       }
-      status("upload-status", "Resume review ready.");
+      status("review-status", "Resume review ready.");
     } catch (error) {
-      status("upload-status", error.message, true);
+      status("review-status", error.message, true);
     } finally {
       button.disabled = false;
     }
@@ -112,7 +113,7 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
     if (!text) return status("mail-status", "Enter a recruiter email first.", true);
     const invited = detectInvitation(text);
     status("mail-status", invited ? "Possible interview invitation detected. Verify the sender and any dates in the original message." : "No interview invitation detected. Review the original message if it is ambiguous.");
-    if (invited) $("make-question").focus();
+    $("practice-next").hidden = !invited;
   });
   $("make-question").addEventListener("click", () => interviewTask(async () => {
     const result = await modelJson("practice-status", 'Generate one realistic first-round interview question for this role. Use the supplied job description if available. Return JSON with one short "question" string.', { role: $("role").value, job: $("job").value.slice(0, 1400) });
@@ -172,6 +173,11 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
     try {
       button.disabled = true;
       cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      if ($("camera").closest("[data-page]").hidden) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = undefined;
+        return;
+      }
       $("camera").srcObject = cameraStream;
       $("camera").hidden = false;
       button.textContent = "Turn off camera preview";
@@ -184,7 +190,8 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
   $("dictate").addEventListener("click", () => {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) return status("practice-status", "Voice input is unavailable here. Type your answer or try a current desktop Chrome browser.", true);
-    const recognition = new Recognition();
+    recognition = new Recognition();
+    const activeRecognition = recognition;
     recognition.lang = "en-US";
     recognition.continuous = true;
     recognition.onstart = () => { $("dictate").textContent = "Stop listening"; };
@@ -195,8 +202,8 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
     };
     recognition.onerror = () => status("practice-status", "Voice recognition was interrupted. You can type your answer.", true);
     const button = $("dictate");
-    const stop = event => { event.stopImmediatePropagation(); recognition.stop(); };
-    recognition.onend = () => { button.textContent = "Answer by voice"; button.removeEventListener("click", stop, true); };
+    const stop = event => { event.stopImmediatePropagation(); activeRecognition.stop(); };
+    recognition.onend = () => { recognition = undefined; button.textContent = "Answer by voice"; button.removeEventListener("click", stop, true); };
     try {
       recognition.start();
       button.addEventListener("click", stop, true);
@@ -204,4 +211,9 @@ export function attachCareerSteps({ $, status, el, browserModel, onResume, onPre
       status("practice-status", "Could not start the microphone.", true);
     }
   });
+  return () => {
+    if (cameraStream) $("toggle-camera").click();
+    recognition?.abort();
+    window.speechSynthesis?.cancel();
+  };
 }

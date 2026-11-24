@@ -1,6 +1,9 @@
 const MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 const CATEGORIES = ["skills", "experience", "education", "certifications", "projects"];
-let enginePromise;
+const BACKUP_MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+let activeEngine;
+let activeModel;
+let queue = Promise.resolve();
 
 const normalize = text => text.replace(/\s+/g, " ").trim().toLowerCase();
 const contains = (source, excerpt) => typeof excerpt === "string" && normalize(excerpt).length >= 5
@@ -70,23 +73,40 @@ export function createAgent(generate, scoreTool) {
 }
 
 export async function browserModel(progress) {
-  if (!navigator.gpu) throw new Error("Live AI needs a WebGPU-enabled browser. Try a current desktop Chrome or Edge, or open the walkthrough.");
-  enginePromise ??= import("https://esm.run/@mlc-ai/web-llm@0.2.80")
-    .then(({ CreateMLCEngine }) => CreateMLCEngine(MODEL, {
-      initProgressCallback: info => progress(Math.round(info.progress * 100)),
-    }, { context_window_size: 4096 }))
-    .catch(() => {
-      enginePromise = undefined;
-      throw new Error("The browser could not load the model. Check WebGPU support and your connection, then retry.");
+  if (!navigator.gpu) throw new Error("Live AI needs a WebGPU-enabled browser. Try current desktop Chrome or Edge, or open the sample walkthrough.");
+  const generate = (system, prompt, input) => {
+    const task = queue.then(async () => {
+      const models = activeModel === BACKUP_MODEL ? [BACKUP_MODEL] : [MODEL, BACKUP_MODEL];
+      for (const model of models) {
+        const backup = model === BACKUP_MODEL;
+        try {
+          if (!activeEngine) {
+            progress(0, backup);
+            const { CreateMLCEngine } = await import("https://esm.run/@mlc-ai/web-llm@0.2.80");
+            activeEngine = await CreateMLCEngine(model, {
+              initProgressCallback: info => progress(Math.round(info.progress * 100), backup),
+            }, { context_window_size: 4096 });
+            activeModel = model;
+          }
+          const result = await activeEngine.chat.completions.create({
+            messages: [{ role: "system", content: system }, { role: "user", content: prompt + "\nInput JSON:\n" + JSON.stringify(input) }],
+            temperature: 0.1,
+            max_tokens: 1500,
+            response_format: { type: "json_object" },
+          });
+          generate.model = backup ? "On-device Qwen 2.5 0.5B" : "On-device Qwen 2.5 1.5B";
+          generate.usedBackup = backup;
+          return result.choices[0].message.content;
+        } catch {
+          try { await activeEngine?.unload(); } catch { /* The engine may already be unavailable. */ }
+          activeEngine = undefined;
+          activeModel = undefined;
+        }
+      }
+      throw new Error("The browser could not run the language model. Check WebGPU support and your connection, then retry.");
     });
-  const engine = await enginePromise;
-  return async (system, prompt, input) => {
-    const result = await engine.chat.completions.create({
-      messages: [{ role: "system", content: system }, { role: "user", content: prompt + "\nInput JSON:\n" + JSON.stringify(input) }],
-      temperature: 0.1,
-      max_tokens: 1500,
-      response_format: { type: "json_object" },
-    });
-    return result.choices[0].message.content;
+    queue = task.catch(() => {});
+    return task;
   };
+  return generate;
 }

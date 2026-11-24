@@ -3,92 +3,194 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Find a role, compare your resume, and prepare an application.">
+<meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
 <link rel="stylesheet" href="./styles.css">
 <script type="module" src="./app.mjs"></script>
 </head>
 <body>
-<header><div class="shell top"><a class="brand" href="./"><span aria-hidden="true">✦</span> AI Career Match</a><a href="#method">Scoring method</a></div></header>
+<header>
+  <div class="shell top">
+    <a class="brand" href="#upload"><span aria-hidden="true">✦</span> AI Career Match</a>
+    <a class="header-link" href="#features">How it works</a>
+  </div>
+</header>
 <main class="shell">
-<section class="intro"><h1>Find a role.<br>See how you fit.</h1><p>Browse live job listings, compare your resume, and prepare a draft for the employer’s application.</p></section>
-<nav class="steps" aria-label="Career steps"><a href="#upload">Resume</a><a href="#preferences">Job preferences</a><a href="#report-title">Analysis</a><a href="#search-title">Job listings</a><a href="#interviews">Interviews</a></nav>
-<section id="upload" class="panel stage"><div class="heading"><h2>Start with your resume</h2><p>Upload a PDF, Word DOCX, or text file. Review the extracted text before analysis.</p></div><div class="section"><label for="file">Resume file</label><input id="file" type="file" accept=".pdf,.docx,.txt"><details id="extraction" hidden><summary>Review extracted text</summary><textarea id="extracted" rows="6" aria-label="Extracted resume text"></textarea></details><p id="upload-status" class="hint" role="status"></p><div class="buttons"><a class="button" href="#preferences">Continue to job preferences</a><button id="analyze-resume" type="button" class="secondary">Score my resume</button></div><div id="resume-analysis"></div></div></section>
-<section id="preferences" class="panel stage"><div class="heading"><h2>Choose job preferences</h2><p>Enter the role, location, level, and pay you are looking for.</p></div><div class="section account-fields">
-<label>Job title<input id="role" maxlength="90" placeholder="e.g. Data Analyst"></label>
-<label>Location<input id="place" maxlength="90" placeholder="e.g. Arizona or Remote"></label>
-<label>Level or employment type<select id="level"><option value="">Any level</option><option value="intern">Internship</option><option value="entry">Entry level</option><option value="senior">Senior</option><option value="manager">Manager</option></select></label>
-<label>Target salary range (USD)<select id="pay"><option value="">Any range</option><option>Under $60,000</option><option>$60,000–$89,999</option><option>$90,000–$119,999</option><option>$120,000+</option></select></label>
-<label>Target job description<textarea id="target-description" maxlength="3000" placeholder="Optional qualifications to compare"></textarea></label>
-<div class="buttons"><button id="use-preferences" type="button">Use preferences</button><a class="button secondary" href="#search-title">Browse jobs</a></div>
-<p class="hint">Salary preferences are recorded for this session. Check pay in the official posting when the public board omits it.</p>
-</div></section>
-<div class="workspace">
- <section class="panel" aria-labelledby="search-title">
-   <div class="heading"><h2 id="search-title">Find a job</h2><p>Search public company career boards.</p></div>
-   <div class="section">
-    <form id="search">
-      <label for="company">Company</label><select id="company"><option value="cloudflare">Cloudflare</option><option value="figma">Figma</option><option value="databricks">Databricks</option></select>
-      <label for="query">Keyword or location</label><div class="search-row"><input id="query" maxlength="100" placeholder="e.g. data, software, remote"><button>Search jobs</button></div>
-    </form>
-    <p id="search-status" class="hint" role="status"></p><div id="listings"></div>
-   </div>
- </section>
- <section class="panel" id="compare-panel" aria-labelledby="compare-title">
-   <div class="heading"><h2 id="compare-title">Compare documents</h2><p>Use a live listing, a sample, or your own text.</p></div>
-   <form class="section" id="compare">
-    <label for="samples">Sample posting</label><select id="samples" disabled></select><p id="source" class="hint"></p>
-    <label for="resume">Resume</label><textarea id="resume" required maxlength="3000" placeholder="Paste relevant resume text."></textarea>
-    <label for="job">Job description</label><textarea id="job" required maxlength="3000" placeholder="Paste the qualifications you want to compare."></textarea>
-    <div class="buttons"><button id="live" disabled>Run live AI</button><button id="walk" class="secondary" type="button" disabled>View sample walkthrough</button></div>
-    <p class="hint">Live AI needs WebGPU. The first run downloads the model. The walkthrough opens immediately.</p>
-    <p id="status" role="status" class="hint"></p>
-   </form>
- </section>
- <section class="panel report" aria-labelledby="report-title" aria-busy="false">
-  <div class="heading report-head"><div><h2 id="report-title">Match report</h2><p id="mode">Qualification alignment</p></div><div id="score" class="score" aria-label="Match score">—</div></div>
-  <div class="section" id="result"><p class="empty">Your score, supporting evidence, and five next steps will appear here.</p></div>
- </section>
- <section class="panel draft-panel" id="application" aria-labelledby="draft-title" hidden>
-  <div class="heading"><h2 id="draft-title">Application draft</h2><p id="draft-caption"></p></div>
-  <div class="section">
-   <label for="draft">Review and edit your draft</label>
-   <textarea id="draft" rows="7" placeholder="Compare a resume with this job, then use the evidence to prepare a draft."></textarea>
-   <div class="buttons"><button id="draft-button" type="button" disabled>Prepare draft</button><button id="copy" type="button" class="secondary">Copy draft</button><button id="packet" type="button" class="secondary">Copy form helper packet</button><a id="employer" class="button secondary" target="_blank" rel="noopener noreferrer">Open employer application</a></div>
-   <p class="hint">Paste the reviewed draft into the employer’s form, or use the optional Chrome form helper on a supported Greenhouse-hosted form. Attach your resume and complete the remaining questions there.</p>
-   <p class="hint" id="draft-status" role="status"></p>
-  </div>
- </section>
-</div>
-<section class="panel account" aria-labelledby="account-title">
-  <div class="heading"><h2 id="account-title">Saved profile and jobs</h2><p>Save a resume and your own candidate details for later visits.</p></div>
-  <div class="section">
-   <a id="signin" href="/signin-with-chatgpt?return_to=%2F" target="_top" hidden>Sign in to save your data</a>
-   <form id="account-form" hidden>
-    <div class="account-fields"><label>Name<input id="full-name" autocomplete="name" maxlength="100"></label><label>Email<input id="email" type="email" autocomplete="email" maxlength="254"></label><label>Phone<input id="phone" type="tel" autocomplete="tel" maxlength="40"></label></div>
-    <div class="buttons"><button>Save profile and current resume</button><button id="load-resume" class="secondary" type="button" disabled>Load saved resume</button><button id="save-job" class="secondary" type="button" disabled>Save selected job</button><button id="delete-account" class="secondary" type="button">Delete my saved data</button></div>
-    <ul id="saved-jobs"></ul>
-   </form>
-   <p id="account-status" class="hint" role="status"></p>
-  </div>
-</section>
-<section id="interviews" class="panel stage"><div class="heading"><h2>Interview inbox and practice</h2><p>Check a recruiter message, then practice answering a role-specific question.</p></div><div class="section">
-<label for="recruiter-message">Recruiter email or sample message</label><textarea id="recruiter-message" maxlength="5000" placeholder="Paste a message to check for an interview invitation."></textarea>
-<div class="buttons"><button id="check-message" type="button">Check for interview invitation</button><button id="load-message" class="secondary" type="button">Load sample email</button></div>
-<p id="mail-status" class="hint" role="status"></p>
-<details><summary>Connect Gmail for read-only inbox checks</summary>
-<form id="gmail"><label for="gmail-client">Google OAuth web client ID</label><input id="gmail-client" maxlength="180" placeholder="OAuth client ID for this site"><div class="buttons"><button>Connect Gmail</button><button id="scan-inbox" type="button" class="secondary" disabled>Check recent messages</button><button id="disconnect-inbox" type="button" class="secondary">Disconnect</button></div></form>
-<p class="hint">Requires a configured Google OAuth app. The connection stays in this tab. The demo checks message previews when you connect or click Check recent messages.</p>
-<p id="gmail-status" class="hint" role="status"></p><ul id="inbox-matches"></ul></details>
-<h3>Practice interview</h3>
-<video id="camera" muted autoplay playsinline hidden></video>
-<p id="question">Generate a question to begin.</p>
-<div class="buttons"><button id="make-question" type="button">Generate question</button><button id="speak" type="button" class="secondary">Read question aloud</button><button id="toggle-camera" type="button" class="secondary">Turn on camera preview</button></div>
-<label for="answer">Your answer</label><textarea id="answer" maxlength="3000" placeholder="Type an answer or use the microphone."></textarea>
-<div class="buttons"><button id="dictate" type="button" class="secondary">Answer by voice</button><button id="feedback" type="button">Get AI feedback</button></div>
-<p id="practice-status" class="hint" role="status"></p><div id="feedback-result"></div>
-<p class="hint">The camera is a local preview. Speech recognition may use your browser’s speech service. Typed answers also work.</p>
-</div></section>
-<section id="method"><h2>How scoring works</h2><p>The resume score uses five categories worth 20 points each. The job-fit score gives required qualifications twice the weight of preferred qualifications. A match earns full credit, partial evidence earns half, and a gap earns zero.</p><ul><li>Organization <strong>20 pts</strong></li><li>Clarity <strong>20 pts</strong></li><li>Impact <strong>20 pts</strong></li><li>Relevance <strong>20 pts</strong></li><li>Skills <strong>20 pts</strong></li></ul><p>The score estimates qualification alignment. Review employer-specific eligibility and application questions in the official posting.</p></section>
+  <nav id="page-nav" class="steps" aria-label="Features" hidden>
+    <a href="#upload">Resume</a><a href="#preferences">Preferences</a><a href="#review">Resume review</a><a href="#jobs">Find jobs</a><a href="#match">Job match</a><a href="#application">Application</a><a href="#inbox">Inbox</a><a href="#interview">Interview</a><a href="#chat">Career Chat</a><a href="#profile">Profile</a>
+  </nav>
+
+  <section data-page="upload" aria-labelledby="upload-title">
+    <div class="intro">
+      <p class="eyebrow">A workspace for your job search</p>
+      <h1 id="upload-title" tabindex="-1">Start with your resume.</h1>
+      <p>See where your experience fits, find real job openings, and prepare for the next step.</p>
+    </div>
+    <section class="panel upload-panel" aria-labelledby="resume-file-title">
+      <div class="heading">
+        <h2 id="resume-file-title">Upload your resume</h2>
+        <p>Use a text-readable PDF, Word DOCX, or TXT file up to 5 MB.</p>
+      </div>
+      <div class="section">
+        <label class="file-zone" for="file">
+          <span>Resume file</span>
+          <input id="file" type="file" accept=".pdf,.docx,.txt">
+        </label>
+        <details id="extraction" hidden><summary>Review extracted text</summary><textarea id="extracted" rows="6" maxlength="3000" aria-label="Extracted resume text"></textarea></details>
+        <p id="upload-status" class="hint" role="status"></p>
+        <div class="buttons upload-actions">
+          <a class="button" href="#preferences">Continue to job preferences</a>
+          <button id="use-sample-resume" type="button" class="secondary" disabled>Use a sample resume</button>
+        </div>
+        <p id="edition-note" class="hint">File extraction runs in your browser.</p>
+      </div>
+    </section>
+    <section id="features" class="features" aria-labelledby="features-title">
+      <h2 id="features-title" tabindex="-1">How it works</h2>
+      <p>Start with your resume or jump to the feature you need.</p>
+      <ul class="feature-grid">
+        <li><a href="#preferences"><strong>Set job preferences</strong><span>Choose a job title, location, experience level, and target salary.</span></a></li>
+        <li><a href="#review"><strong>Review your resume</strong><span>Get a score out of 100 and see what to improve.</span></a></li>
+        <li><a href="#jobs"><strong>Find open jobs</strong><span>Browse current company listings and open the official postings.</span></a></li>
+        <li><a href="#match"><strong>Check job fit</strong><span>Compare qualifications against evidence in your resume.</span></a></li>
+        <li><a href="#application"><strong>Prepare an application</strong><span>Draft a cover note and review it before applying.</span></a></li>
+        <li><a href="#inbox"><strong>Check a recruiter reply</strong><span>Spot possible interview invitations in a message.</span></a></li>
+        <li><a href="#interview"><strong>Practice an interview</strong><span>Answer a role-specific question by voice or text and get feedback.</span></a></li>
+        <li><a href="#chat"><strong>Ask Career Chat</strong><span>Get help with resume bullets, applications, and interview prep.</span></a></li>
+      </ul>
+    </section>
+  </section>
+
+  <section data-page="preferences" hidden aria-labelledby="preferences-title">
+    <div class="page-heading"><h1 id="preferences-title" tabindex="-1">Job preferences</h1><p>Tell us what role you’re looking for or add a description for a specific opening.</p></div>
+    <div class="panel"><div class="section preferences-fields">
+      <label>Job title<input id="role" maxlength="90" placeholder="e.g. Data Analyst"></label>
+      <label>Location<input id="place" maxlength="90" placeholder="e.g. Arizona or Remote"></label>
+      <label>Level or employment type<select id="level"><option value="">Any level</option><option value="intern">Internship</option><option value="entry">Entry level</option><option value="senior">Senior</option><option value="manager">Manager</option></select></label>
+      <label>Target salary range (USD)<select id="pay"><option value="">Any range</option><option>Under $60,000</option><option>$60,000–$89,999</option><option>$90,000–$119,999</option><option>$120,000+</option></select></label>
+      <label class="full-width">Target job description<textarea id="target-description" maxlength="3000" placeholder="Optional qualifications to compare"></textarea></label>
+      <p class="hint full-width">Check pay in the official posting when the public board omits it.</p>
+      <div class="buttons full-width"><button id="use-preferences" type="button">Continue with these preferences</button><a class="button secondary" href="#review">Review resume</a></div>
+    </div></div>
+  </section>
+
+  <section data-page="review" hidden aria-labelledby="review-title">
+    <div class="page-heading"><h1 id="review-title" tabindex="-1">Resume review</h1><p>Get feedback on organization, clarity, impact, relevance, and skills. Each category is worth 20 points.</p></div>
+    <div class="panel"><div class="section">
+      <p id="review-resume-note" class="hint"></p>
+      <div class="buttons"><button id="analyze-resume" type="button">Score my resume</button><a class="button secondary" href="#upload">Edit or upload resume</a></div>
+      <p id="review-status" class="hint" role="status"></p><div id="resume-analysis"></div>
+    </div></div>
+  </section>
+
+  <section data-page="jobs" hidden aria-labelledby="search-title">
+    <div class="page-heading"><h1 id="search-title" tabindex="-1">Find jobs</h1><p>Browse public company career boards. Choose a listing to compare it with your resume.</p></div>
+    <div class="panel"><div class="section">
+      <form id="search">
+        <label for="company">Company</label><select id="company"><option value="cloudflare">Cloudflare</option><option value="figma">Figma</option><option value="databricks">Databricks</option></select>
+        <label for="query">Keyword or location</label><div class="search-row"><input id="query" maxlength="100" placeholder="e.g. data, software, remote"><button>Search jobs</button></div>
+      </form>
+      <p id="search-status" class="hint" role="status"></p><div id="listings"></div>
+    </div></div>
+  </section>
+
+  <section data-page="match" hidden aria-labelledby="match-title">
+    <div class="page-heading"><h1 id="match-title" tabindex="-1">Job match</h1><p>Compare your resume with a posting and see which qualifications you can demonstrate.</p></div>
+    <div class="workspace">
+      <section class="panel" aria-labelledby="compare-title">
+        <div class="heading"><h2 id="compare-title">Compare documents</h2><p>Use a live listing, a sample, or your own text.</p></div>
+        <form class="section" id="compare">
+          <label for="samples">Sample posting</label><select id="samples" disabled></select><p id="source" class="hint"></p>
+          <label for="resume">Resume</label><textarea id="resume" required maxlength="3000" placeholder="Paste relevant resume text."></textarea>
+          <label for="job">Job description</label><textarea id="job" required maxlength="3000" placeholder="Paste the qualifications you want to compare."></textarea>
+          <div class="buttons"><button id="live" disabled>Run live AI</button><button id="walk" class="secondary" type="button" disabled>View sample walkthrough</button></div>
+          <p class="hint">The walkthrough uses a fictional resume. Live AI needs WebGPU and downloads a model on first use.</p>
+          <p id="status" role="status" class="hint"></p>
+        </form>
+      </section>
+      <section class="panel report" aria-labelledby="report-title" aria-busy="false">
+        <div class="heading report-head"><div><h2 id="report-title">Match report</h2><p id="mode">Qualification alignment</p></div><div id="score" class="score" aria-label="Match score">—</div></div>
+        <div class="section" id="result"><p class="empty">Your score, supporting evidence, and five next steps will appear here.</p></div>
+        <div id="application-next" class="section" hidden><a class="button secondary" href="#application">Open application draft</a></div>
+      </section>
+    </div>
+    <details class="method"><summary>How job-fit scoring works</summary>
+      <p>Required qualifications count twice as much as preferred qualifications. A match earns full credit, partial evidence earns half credit, and a gap earns zero.</p>
+      <p>The score estimates qualification alignment. Check eligibility and application requirements in the official posting.</p>
+    </details>
+  </section>
+
+  <section data-page="application" hidden aria-labelledby="draft-title">
+    <div class="page-heading"><h1 id="draft-title" tabindex="-1">Application draft</h1><p>Use verified resume evidence to prepare a cover note for a specific job.</p></div>
+    <div id="application-empty" class="panel"><div class="section"><p>Choose a job listing to start an application draft.</p><div class="buttons stage-actions"><a class="button" href="#jobs">Find a job</a></div></div></div>
+    <div class="panel" id="application" hidden>
+      <div class="heading"><h2 id="draft-caption"></h2></div>
+      <div class="section">
+        <p id="draft-instructions" class="hint">Run a live match to prepare an AI draft. <a href="#match">Go to job match</a></p>
+        <label for="draft">Review and edit your draft</label>
+        <textarea id="draft" rows="7" placeholder="Compare a resume with this job, then use the evidence to prepare a draft."></textarea>
+        <div class="buttons"><button id="draft-button" type="button" disabled>Prepare draft</button><button id="copy" type="button" class="secondary">Copy draft</button><button id="packet" type="button" class="secondary">Copy form helper packet</button><a id="employer" class="button secondary" target="_blank" rel="noopener noreferrer">Open employer application</a></div>
+        <p class="hint">Paste the reviewed draft into the employer’s form, or use the optional Chrome form helper on a supported Greenhouse-hosted form. Attach your resume and complete the remaining questions there.</p>
+        <p class="hint" id="draft-status" role="status"></p>
+      </div>
+    </div>
+  </section>
+
+  <section data-page="inbox" hidden aria-labelledby="inbox-title">
+    <div class="page-heading"><h1 id="inbox-title" tabindex="-1">Interview inbox</h1><p>Check a recruiter reply for a possible interview invitation.</p></div>
+    <div class="panel"><div class="section">
+      <label for="recruiter-message">Recruiter email or sample message</label><textarea id="recruiter-message" maxlength="5000" placeholder="Paste a message to check for an interview invitation."></textarea>
+      <div class="buttons"><button id="check-message" type="button">Check for interview invitation</button><button id="load-message" class="secondary" type="button">Load sample email</button><a id="practice-next" class="button secondary" href="#interview" hidden>Practice for the interview</a></div>
+      <p id="mail-status" class="hint" role="status"></p>
+      <details><summary>Connect Gmail for read-only inbox checks</summary>
+        <form id="gmail"><label for="gmail-client">Google OAuth web client ID</label><input id="gmail-client" maxlength="180" placeholder="OAuth client ID for this site"><div class="buttons"><button>Connect Gmail</button><button id="scan-inbox" type="button" class="secondary" disabled>Check recent messages</button><button id="disconnect-inbox" type="button" class="secondary">Disconnect</button></div></form>
+        <p class="hint">Requires a configured Google OAuth app. The connection stays in this tab. The demo checks message previews when you connect or click Check recent messages.</p>
+        <p id="gmail-status" class="hint" role="status"></p><ul id="inbox-matches"></ul>
+      </details>
+    </div></div>
+  </section>
+
+  <section data-page="interview" hidden aria-labelledby="interview-title">
+    <div class="page-heading"><h1 id="interview-title" tabindex="-1">Interview practice</h1><p>Practice answering a role-specific question and get feedback on your response.</p></div>
+    <div class="panel"><div class="section">
+      <video id="camera" muted autoplay playsinline hidden></video>
+      <p id="question">Generate a question to begin.</p>
+      <div class="buttons"><button id="make-question" type="button">Generate question</button><button id="speak" type="button" class="secondary">Read question aloud</button><button id="toggle-camera" type="button" class="secondary">Turn on camera preview</button></div>
+      <label for="answer">Your answer</label><textarea id="answer" maxlength="3000" placeholder="Type an answer or use the microphone."></textarea>
+      <div class="buttons"><button id="dictate" type="button" class="secondary">Answer by voice</button><button id="feedback" type="button">Get AI feedback</button></div>
+      <p id="practice-status" class="hint" role="status"></p><div id="feedback-result"></div>
+      <p class="hint">The camera is a local preview. Speech recognition may use your browser’s speech service. Typed answers also work.</p>
+    </div></div>
+  </section>
+
+  <section data-page="chat" hidden aria-labelledby="chat-title">
+    <div class="page-heading"><h1 id="chat-title" tabindex="-1">Career Chat</h1><p>Ask a question about resumes, job searches, applications, or interview prep.</p></div>
+    <div class="panel">
+      <div class="section">
+        <div id="chat-history" class="chat-history" role="log" aria-label="Chat messages"></div>
+        <form id="chat-form">
+          <label for="chat-input">Your question</label><textarea id="chat-input" rows="3" maxlength="1000" required placeholder="How can I describe a class project on my resume?"></textarea>
+          <label class="check-label"><input id="chat-context" type="checkbox"> Include resume and job details</label>
+          <p id="chat-privacy" class="hint">If Gemini is configured, Google processes the conversation and any details you choose to include. Remove personal contact information before sharing.</p>
+          <div class="buttons"><button id="chat-submit">Send question</button><button id="chat-clear" type="button" class="secondary">Clear chat</button></div>
+          <p id="chat-status" class="hint" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section data-page="profile" hidden aria-labelledby="account-title">
+    <div class="page-heading"><h1 id="account-title" tabindex="-1">Saved profile and jobs</h1><p id="profile-note">Save a resume and your own candidate details for later visits.</p></div>
+    <div class="panel"><div class="section">
+      <a id="signin" href="/signin-with-chatgpt?return_to=%2F%23profile" target="_top" hidden>Sign in to save your data</a>
+      <form id="account-form" hidden>
+        <div class="account-fields"><label>Name<input id="full-name" autocomplete="name" maxlength="100"></label><label>Email<input id="email" type="email" autocomplete="email" maxlength="254"></label><label>Phone<input id="phone" type="tel" autocomplete="tel" maxlength="40"></label></div>
+        <div class="buttons"><button>Save profile and current resume</button><button id="load-resume" class="secondary" type="button" disabled>Load saved resume</button><button id="save-job" class="secondary" type="button" disabled>Save selected job</button><button id="delete-account" class="secondary" type="button">Delete my saved data</button></div>
+        <ul id="saved-jobs"></ul>
+      </form>
+      <p id="account-status" class="hint" role="status"></p>
+    </div></div>
+  </section>
 </main>
-</body></html>
+</body>
+</html>
