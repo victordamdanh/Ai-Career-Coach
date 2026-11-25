@@ -195,7 +195,7 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
 }
 .maya-gaze {
   transform: translate(var(--maya-eye-x, 0px), var(--maya-eye-y, 0px));
-  opacity: .8;
+  opacity: .55;
 }
 .maya-mouth {
   mask-image: radial-gradient(ellipse 12% 7% at 52% 43.8%, #000 48%, transparent 100%);
