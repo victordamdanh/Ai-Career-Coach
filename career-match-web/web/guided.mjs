@@ -86,8 +86,10 @@ export function createApplicationQueue({ $, el, status, sourceLink, prepare, rev
       if (entry.error) {
         item.append(el("p", entry.error, "hint"), sourceLink(entry.posting.url, "Open source posting"));
       } else {
-        item.append(el("p", entry.report.rubric.score + "% qualification alignment · " +
-          (entry.report.mode === "live" ? "Live AI" : "Source-based comparison"), "hint"));
+        const score = entry.report ? entry.report.rubric.score + "% qualification alignment · " +
+          (entry.report.mode === "live" ? "Live AI" : "Source-based comparison") : "Match score unavailable";
+        item.append(el("p", score, "hint"));
+        if (entry.warning) item.append(el("p", entry.warning, "hint"));
         const button = el("button", entry.draft ? "Review application draft" : "Review job match", "secondary");
         button.type = "button";
         button.addEventListener("click", () => review(entry));
@@ -123,10 +125,11 @@ export function createApplicationQueue({ $, el, status, sourceLink, prepare, rev
     const prepared = current === generation;
     if (prepared) {
       results.sort((a, b) => Number(Boolean(b.draft)) - Number(Boolean(a.draft)) ||
-        (b.report?.rubric.score ?? -1) - (a.report?.rubric.score ?? -1));
+        (b.report?.rubric.score ?? -1) - (a.report?.rubric.score ?? -1) ||
+        Number(b.evidenceSource === "match") - Number(a.evidenceSource === "match"));
       showResults();
       status("guided-status", results.some(entry => entry.draft) ?
-        "Review the match and each draft before applying." : "No draft had enough resume evidence. Review a result or select other jobs.");
+        "Review the match and each draft before applying." : "No draft could be prepared. Review the source errors or select other jobs.");
     }
     editing = false;
     update();

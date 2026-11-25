@@ -176,9 +176,15 @@
     <div class="panel" id="application" hidden>
       <div class="heading"><h2 id="draft-caption"></h2></div>
       <div class="section">
-        <p id="draft-instructions" class="hint">Run a job match to prepare an AI draft. <a href="#match">Go to job match</a></p>
+        <p id="draft-instructions" class="hint">You can prepare a draft from your resume now. <a href="#match">Run Job Match</a> to verify how your experience aligns with this role.</p>
+        <div class="account-fields">
+          <label>Name<input id="draft-name" autocomplete="name" maxlength="100" placeholder="Your name"></label>
+          <label>Email<input id="draft-email" type="email" autocomplete="email" maxlength="254" placeholder="Your email"></label>
+          <label>Phone<input id="draft-phone" type="tel" autocomplete="tel" maxlength="40" placeholder="Your phone"></label>
+        </div>
+        <p class="hint">Review the contact details extracted from your resume before copying or sending the application.</p>
         <label for="draft">Review and edit your draft</label>
-        <textarea id="draft" rows="7" placeholder="Compare a resume with this job, then use the evidence to prepare a draft."></textarea>
+        <textarea id="draft" rows="10" placeholder="Choose a job and upload your resume to prepare a draft."></textarea>
         <div class="buttons"><button id="draft-button" type="button" disabled>Prepare draft</button><button id="copy" type="button" class="secondary">Copy draft</button><button id="packet" type="button" class="secondary">Copy form helper packet</button><a id="employer" class="button secondary" target="_blank" rel="noopener noreferrer">Open employer application</a></div>
         <p class="hint">Paste the reviewed draft into the employer’s form, or use the optional Chrome form helper on a supported Greenhouse-hosted form. Attach your resume and complete the remaining questions there.</p>
         <div class="buttons"><button id="mark-application-submitted" type="button" class="secondary">Mark as submitted</button></div>

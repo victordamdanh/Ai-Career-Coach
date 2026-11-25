@@ -116,6 +116,7 @@ import { resumeExcerpt, resumeProfile, resumeLimit } from "../web/resume-review.
 import { departmentChoices } from "../web/automatic-preferences.mjs";
 import { states } from "../web/job-preferences.mjs";
 import { canNavigateWorkflow } from "../web/workflow.mjs";
+import { applicationEvidence, resumeContact } from "../web/match-evidence.mjs";
 
 test("Start with AI opens the setup and only starts a strict review/search after submission", async t => {
   const nodes = new Map();
@@ -160,7 +161,7 @@ test("Start with AI opens the setup and only starts a strict review/search after
   const bindings = { window, document, fetch, browserModel, createAgent: noop, attachCareerSteps, resumeExcerpt, resumeLimit, resumeProfile,
     attachChat: noop, attachInbox: noop, attachRecruiterEmail: noop, applicationKey: noop,
     createApplicationQueue: () => ({ clear: noop, update: noop, selectionControl: noop, trackedJobs: () => [], prepareAutomatic: async () => [] }),
-    canNavigateWorkflow, attachPreferencePickers: noop, draftFromEvidence: noop, automaticPreferences,
+    canNavigateWorkflow, attachPreferencePickers: noop, draftFromEvidence: noop, applicationEvidence, resumeContact, automaticPreferences,
     departmentChoices, rankDepartmentRoles, stateName, states };
   const source = await readFile(new URL("../web/app.mjs", import.meta.url), "utf8");
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
