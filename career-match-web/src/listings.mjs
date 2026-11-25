@@ -1,4 +1,4 @@
-import { listingWorkArrangement, matchesAdvertisedPay, matchesJobLocation, matchesSearchLevel, matchesSearchLocation, matchesWorkArrangement, preferenceWords, salaryTarget, states } from "../web/job-preferences.mjs";
+import { listingWorkArrangement, matchesAdvertisedPay, matchesJobLocation, searchLevelStatus, matchesSearchLocation, matchesWorkArrangement, preferenceWords, salaryTarget, states } from "../web/job-preferences.mjs";
 
 export const companyBoards = {
   anthropic: "Anthropic", airbnb: "Airbnb", cloudflare: "Cloudflare", databricks: "Databricks",
@@ -53,6 +53,21 @@ async function boardJobs(company, withContent, fetcher) {
   return jobs;
 }
 
+function postingLocation(job, metadata) {
+  const primary = typeof job.location?.name === "string" ? job.location.name.trim() : "";
+  // Greenhouse often publishes an arrangement in location.name while the
+  // actual locations are in posting metadata and/or the advertised office(s).
+  const generic = !primary || /^(?:remote|hybrid|on[ -]?site|in[ -]?(?:office|person)|office[ -]based|see official posting)$/i.test(primary);
+  if (!generic) return primary;
+  const posted = metadata.filter(item => /\b(?:job posting location|posting location|job location)\b/i.test(item?.name ?? ""))
+    .flatMap(item => item.value).filter(value => typeof value === "string" && value.trim());
+  const offices = (Array.isArray(job.offices) ? job.offices : []).flatMap(office =>
+    [office?.location || office?.name].filter(value => typeof value === "string" && value.trim()));
+  // A corporate office alone cannot establish where a remote role may work.
+  const locations = /^remote$/i.test(primary) ? [...posted, ...offices.filter(value => /\bremote\b/i.test(value))] : [...posted, ...offices];
+  return [...new Set([primary, ...locations].filter(Boolean))].join(" · ") || "See official posting";
+}
+
 function toListing(job, company) {
   if (!Number.isSafeInteger(job.id) || typeof job.title !== "string" || typeof job.absolute_url !== "string") return null;
   let official;
@@ -63,7 +78,7 @@ function toListing(job, company) {
     .flatMap(item => item.value).filter(value => typeof value === "string").join(" ");
   const workplace = metadata.filter(item => /\b(?:workplace|work arrangement|work model|work location|remote status|location type)\b/i.test(item?.name ?? ""))
     .flatMap(item => item.value).filter(value => typeof value === "string").join(" ");
-  const listing = { id: job.id, title: job.title, location: job.location?.name || "See official posting",
+  const listing = { id: job.id, title: job.title, location: postingLocation(job, metadata),
     company: companyBoards[company], companyId: company, url: official.href, seniority, workplace };
   if (typeof job.content === "string") {
     const description = jobText(job.content);
@@ -83,7 +98,7 @@ export async function fetchListings(company, phrase, fetcher = fetch, { place = 
     if (!listing?.description || !meetsPreferences(listing, place, level, targetPay, work, Boolean(work))) continue;
     const terms = [listing.title, listing.location, ...(entry.departments ?? []).map(dept => dept.name)]
       .join(" ").toLowerCase();
-    if (query.every(word => terms.includes(word))) jobs.push(listing);
+    if (query.every(word => terms.includes(word))) jobs.push({ ...listing, levelUnverified: searchLevelStatus(level, listing, Boolean(work)) === "unknown" });
   }
   return { company: companyBoards[company], total: jobs.length, jobs };
 }
@@ -126,7 +141,7 @@ function remoteOrUS(location) {
 function meetsPreferences(listing, place, level, targetPay, work = "", strict = false) {
   const placeOk = typeof place === "function" ? place(listing.location) : matchesSearchLocation(place, listing, work);
   return placeOk && matchesWorkArrangement(work, listing) &&
-    matchesSearchLevel(level, listing, strict) &&
+    searchLevelStatus(level, listing, strict) !== "mismatch" &&
     matchesAdvertisedPay(targetPay, listing.salary);
 }
 
@@ -161,9 +176,9 @@ function toRemoteListing(job) {
     provider: "jobicy", arrangement: "Remote", salary, description: description.slice(0, 18_000), excerpt: excerpt(description) };
 }
 
-async function remoteListings(roles, fetcher, fresh = false) {
+async function remoteListings(roles, fetcher, fresh = false, maxTags = 2) {
   const terms = roles.slice(0, 6).map(role => role.trim().match(/\b(?!(?:senior|junior|staff|lead|principal|entry|intern)\b)[a-z]{3,}\b/i)?.[0]?.toLowerCase());
-  const tags = [...new Set(terms.filter(Boolean))].slice(0, 2);
+  const tags = [...new Set(terms.filter(Boolean))].slice(0, maxTags);
   const feeds = await Promise.allSettled((tags.length ? tags : [""]).map(async tag => {
     const params = new URLSearchParams({ count: "100" });
     if (tag) params.set("tag", tag);
@@ -201,16 +216,39 @@ export async function checkRemoteListing(id, fetcher = fetch) {
 
 export async function recommendCompanies({ roles, place, level, pay = "", skills = [], includeRemote = false, work = "", strict = false }, fetcher = fetch) {
   const query = [...new Set(roles.flatMap(role => [role, role.replace(/\s*\([^()]+\)\s*$/, "")]).map(roleKey))].filter(role => role.trim());
-  const related = [...new Set(relatedTitles.filter(group => group.some(role => query.some(term => matchesTitle(term, role)))).flat())];
+  // Close aliases are the same occupation; don't cross the selected department
+  // from Data Analyst to Business Analyst in a guided search.
+  const titleGroups = strict ? relatedTitles.map(group => group.filter(role => role !== roleKey("business analyst"))) : relatedTitles;
+  const related = [...new Set(titleGroups.filter(group => group.some(role => query.some(term => matchesTitle(term, role)))).flat())];
+  const rankTitle = title => {
+    const key = roleKey(title);
+    const directRank = query.reduce((total, role, position) => matchesTitle(key, role) ? total + query.length - position : total, 0);
+    return directRank ? directRank + 1 : Number(related.some(role => matchesTitle(key, role)));
+  };
+  const isCandidate = job => typeof job.title === "string" && (!query.length || rankTitle(job.title));
   const targetPay = salaryTarget(pay);
   const sources = Object.entries(companyBoards).map(([company, name]) => [name, async () => {
-    const jobs = await boardJobs(company, Boolean(work), fetcher);
-    return jobs.map(job => toListing(job, company)).filter(Boolean);
+    const summary = (await boardJobs(company, false, fetcher)).filter(isCandidate);
+    // Download descriptions only from boards that contain relevant titles.
+    // If a large content request times out, keep their live summary results.
+    let jobs = summary;
+    let detailsUnavailable = false;
+    if (work && summary.length && summary.some(job => typeof job.content !== "string")) {
+      try {
+        jobs = (await boardJobs(company, true, fetcher)).filter(isCandidate);
+      } catch {
+        detailsUnavailable = true;
+      }
+    }
+    return { listings: jobs.map(job => toListing(job, company)).filter(Boolean), detailsUnavailable };
   }]);
-  if (includeRemote && (!work || work === "Remote")) sources.push(["Jobicy", () => remoteListings(roles, fetcher)]);
+  if (includeRemote && (!work || work === "Remote")) sources.push(["Jobicy", async () => ({
+    listings: await remoteListings(roles, fetcher, false, strict ? 5 : 2), detailsUnavailable: false,
+  })]);
   const results = await Promise.allSettled(sources.map(([, load]) => load()));
   const checked = [];
   const unavailable = [];
+  const incomplete = [];
   const candidates = [];
   for (const [index, result] of results.entries()) {
     const name = sources[index][0];
@@ -219,11 +257,10 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
       continue;
     }
     checked.push(name);
-    for (const listing of result.value) {
-      const title = roleKey(listing.title);
-      const directRank = query.reduce((total, role, position) => matchesTitle(title, role) ? total + query.length - position : total, 0);
-      const rank = directRank ? directRank + 1 : Number(related.some(role => matchesTitle(title, role)));
-      if (query.length && (!rank || (strict && !directRank))) continue;
+    if (result.value.detailsUnavailable) incomplete.push(name);
+    for (const listing of result.value.listings) {
+      const rank = rankTitle(listing.title);
+      if (query.length && !rank) continue;
       candidates.push({ listing, rank });
     }
   }
@@ -252,7 +289,8 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
       const companyKey = titleKey(listing.company);
       const listingKey = (listing.provider ?? "greenhouse") + "/" + listing.id;
       const openings = companies.get(companyKey) ?? new Map();
-      if (!openings.has(listingKey)) openings.set(listingKey, { listing: { ...listing, matchedSkills }, rank: rank * 10 + matchedSkills.length });
+      const levelUnverified = searchLevelStatus(tier.level, listing, strict) === "unknown";
+      if (!openings.has(listingKey)) openings.set(listingKey, { listing: { ...listing, matchedSkills, levelUnverified }, rank: rank * 10 + matchedSkills.length + (levelUnverified ? 0 : 2) });
       companies.set(companyKey, openings);
     }
     relaxed = tier.relaxed;
@@ -268,5 +306,5 @@ export async function recommendCompanies({ roles, place, level, pay = "", skills
     return { company: rows[0].listing.company, jobs: rows.map(row => row.listing), rank: rows[0].rank, total: rows.length };
   });
   matches.sort((a, b) => b.rank - a.rank || b.total - a.total || a.company.localeCompare(b.company));
-  return { matches, checked, unavailable, relaxed, widened };
+  return { matches, checked, unavailable, incomplete, relaxed, widened };
 }

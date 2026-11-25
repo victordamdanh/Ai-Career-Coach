@@ -1,16 +1,16 @@
-import { createClassroomRequest } from "./request.mjs?v=333fe799808a";
+import { createClassroomRequest } from "./request.mjs?v=d406739e5828";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=333fe799808a";
-import { attachCareerSteps } from "./career-steps.mjs?v=333fe799808a";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=333fe799808a";
-import { attachChat } from "./chat.mjs?v=333fe799808a";
-import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=333fe799808a";
-import { applicationKey, createApplicationQueue } from "./guided.mjs?v=333fe799808a";
-import { canNavigateWorkflow } from "./workflow.mjs?v=333fe799808a";
-import { attachPreferencePickers } from "./preference-pickers.mjs?v=333fe799808a";
-import { draftFromEvidence } from "./match-evidence.mjs?v=333fe799808a";
-import { automaticPreferences, departmentChoices, rankDepartmentRoles, stateName } from "./automatic-preferences.mjs?v=333fe799808a";
-import { states } from "./job-preferences.mjs?v=333fe799808a";
+import { browserModel, createAgent } from "./agent.mjs?v=d406739e5828";
+import { attachCareerSteps } from "./career-steps.mjs?v=d406739e5828";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=d406739e5828";
+import { attachChat } from "./chat.mjs?v=d406739e5828";
+import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=d406739e5828";
+import { applicationKey, createApplicationQueue } from "./guided.mjs?v=d406739e5828";
+import { canNavigateWorkflow } from "./workflow.mjs?v=d406739e5828";
+import { attachPreferencePickers } from "./preference-pickers.mjs?v=d406739e5828";
+import { draftFromEvidence } from "./match-evidence.mjs?v=d406739e5828";
+import { automaticPreferences, departmentChoices, rankDepartmentRoles, stateName } from "./automatic-preferences.mjs?v=d406739e5828";
+import { states } from "./job-preferences.mjs?v=d406739e5828";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -33,6 +33,7 @@ let currentPage;
 let listingSelection;
 let lastCompanyQuery;
 let searchedQuery;
+let refreshJobsAfterSearch = false;
 let resumeReview;
 let invitationDetected = false;
 let guided = false;
@@ -72,7 +73,8 @@ function renderPage({ scroll = false } = {}) {
     window.history.replaceState({ ...window.history.state, careerStep: next }, "", next === requested ? window.location.href : "#" + next);
   }
   const changed = currentPage !== next;
-  if (changed && !fromAutomatic) stopAutomaticRun();
+  const continuingToJobs = automaticRun && !automaticRun.cancelled && currentPage === "review" && next === "jobs";
+  if (changed && !fromAutomatic && !continuingToJobs) stopAutomaticRun();
   if (currentPage === "preferences" && next === "review") savePreferences();
   if (changed && currentPage === "jobs") listingSelection = undefined;
   for (const [pageName, page] of pages) page.hidden = pageName !== next;
@@ -91,8 +93,9 @@ function renderPage({ scroll = false } = {}) {
   if (changed && currentPage === "interview") stopInterview();
   currentPage = next;
   if (changed && next === "review" && guided && !resumeReview) $("analyze-resume").click();
-  if (changed && next === "jobs" && companyQueryKey() !== lastCompanyQuery) {
-    searchResumeCompanies(guided);
+  if (changed && next === "jobs" && !fromAutomatic && searchedQuery !== companyQueryKey()) {
+    if (!resumeJobs.disabled) searchResumeCompanies(guided);
+    else if (!automaticRun || automaticRun.cancelled) refreshJobsAfterSearch = true;
   }
   const heading = pages.get(next).querySelector("h1");
   document.title = next === "upload" ? "AI Career Match" : heading.textContent + " | AI Career Match";
@@ -271,7 +274,8 @@ function listingCard(listing) {
   actions.append(compare, applications.selectionControl(listing, () => loadDescription(true)));
   details.append(summary, description);
   const source = listing.provider === "jobicy" ? " · Via Jobicy" : "";
-  item.append(heading, el("p", [listing.location, listing.arrangement].filter(Boolean).join(" · ") + source, "hint"));
+  const experienceNote = listing.levelUnverified ? "Experience level not published — verify in Job Match" : "";
+  item.append(heading, el("p", [...new Set([listing.location, listing.arrangement, experienceNote].filter(Boolean))].join(" · ") + source, "hint"));
   item.append(details, actions, matchStatus);
   return item;
 }
@@ -359,6 +363,7 @@ async function searchResumeCompanies(refine, isCurrent = () => true) {
   }
   lastCompanyQuery = resultKey;
   resumeJobs.disabled = refineJobs.disabled = true;
+  refreshJobsAfterSearch = false;
   status("ai-job-search-status");
   const profile = resumeReview?.profile ?? resumeProfile(text);
   const scoped = guided && automaticChoices;
@@ -386,7 +391,7 @@ async function searchResumeCompanies(refine, isCurrent = () => true) {
       aiWorked = false;
     }
     if (!aiWorked) firstResults = result;
-    const { matches, checked, unavailable, relaxed = [], widened } = result;
+    const { matches, checked, unavailable, incomplete = [], relaxed = [], widened } = result;
     latestResults = result;
     if (!checked.length) {
       status("matched-jobs-status", "The live sources did not respond. Use Refresh live jobs to retry.", true);
@@ -402,8 +407,11 @@ async function searchResumeCompanies(refine, isCurrent = () => true) {
         (relaxed.includes("location") && filters.place ? " for " + filters.place : "") + ", so these results show " + (widened === "remote or U.S." ? "remote and U.S. openings" : "openings in other locations") + ". Check each posting’s location and requirements.");
     } else if (filters.place) lines.push("Location filter applied for " + filters.place + ".");
     if (filters.work) lines.push("Work arrangement: " + filters.work + ". Only postings with matching arrangement evidence are shown.");
-    if (filters.strict === "1") lines.push("AI filters are kept as selected; edit preferences to broaden the search.");
-    if (!matches.length) lines.push("Try another job title or adjust your level or pay preferences.");
+    if (filters.strict === "1") {
+      lines.push("Your work arrangement and location remain as selected; roles without published experience levels are labeled for review.");
+    }
+    if (incomplete.length) lines.push("Some posting details could not be loaded for " + incomplete.join(", ") + ". Verified summary matches are still shown.");
+    if (!matches.length) lines.push("No verified openings matched these filters. Try Refresh live jobs or edit your title, work arrangement, location or salary target.");
     if (unavailable.length) lines.push("Couldn’t check " + unavailable.join(", ") + ".");
     status("matched-jobs-status", lines.join(" "));
     showCompanies(matches);
@@ -426,7 +434,9 @@ async function searchResumeCompanies(refine, isCurrent = () => true) {
     if (isCurrent()) status("matched-jobs-status", error.message, true);
   } finally {
     resumeJobs.disabled = refineJobs.disabled = false;
-    if (isCurrent() && currentPage === "jobs" && resultKey !== companyQueryKey()) searchResumeCompanies(guided);
+    const revisit = refreshJobsAfterSearch || resultKey !== companyQueryKey();
+    refreshJobsAfterSearch = false;
+    if (currentPage === "jobs" && revisit) searchResumeCompanies(guided);
   }
   return latestResults;
 }
@@ -755,6 +765,9 @@ function stopAutomaticRun() {
   applications.clear();
   updateAutomaticControls();
   status("automatic-run-status", "AI workflow stopped.");
+  if (currentPage === "jobs" && searchedQuery !== companyQueryKey()) {
+    status("matched-jobs-status", "Automatic search stopped. Select Refresh live jobs to search again.");
+  }
 }
 
 function openAutomaticPage(page) {
@@ -833,8 +846,12 @@ async function startAutomaticRun(derive = false) {
     const results = await searchResumeCompanies(false, isCurrent);
     await feedback;
     if (!isCurrent()) return;
-    if (!results?.checked?.length || !results.matches?.length) {
-      showJobs("No openings are ready to compare. Refresh the live sources or edit your preferences.");
+    if (!results?.checked?.length) {
+      showJobs("Live sources were unavailable. Select Refresh live jobs to retry without re-uploading your resume.");
+      return;
+    }
+    if (!results.matches?.length) {
+      showJobs("No verified openings matched your selected filters. Edit preferences or refresh the live sources.");
       return;
     }
     if (results.relaxed?.length) {

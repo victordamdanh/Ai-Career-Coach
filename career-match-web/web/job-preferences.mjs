@@ -97,25 +97,36 @@ export function matchesAdvertisedPay(target, salary) {
   return (salary.max ?? Infinity) >= target.min && (salary.min ?? 0) <= target.max;
 }
 
-export function listingWorkArrangement(listing) {
-  const label = preferenceWords([listing.title, listing.location, listing.workplace].filter(Boolean).join(" "));
-  const classify = text => /\bhybrid\b/.test(text) ? "Hybrid" :
-    /\b(?:remote|work from home|distributed)\b/.test(text) && !/\b(?:not|no) (?:fully )?remote\b/.test(text) ? "Remote" :
-    /\b(?:on site|onsite|in person|in office|office based)\b/.test(text) ? "In-person" : "";
-  const explicit = classify(label);
-  if (explicit) return explicit;
-  if (listing.provider === "jobicy") return "Remote";
+function arrangementEvidence(listing) {
+  const titleArrangement = listing.title?.match(/\((remote|hybrid|on[- ]?site|in[- ]?person)\)|(?:[-–—:]\s*)(remote|hybrid|on[- ]?site|in[- ]?person)\s*$/i)?.[0];
+  const label = preferenceWords([titleArrangement, listing.location, listing.workplace].filter(Boolean).join(" "));
   const description = preferenceWords(listing.description || "");
-  const arrangements = [
-    ["Hybrid", /\b(?:hybrid (?:role|position|work|schedule|model|arrangement)|(?:role|position|job) (?:is|will be) (?:a )?hybrid|work (?:in|from) (?:the|our) office \d+ days)\b/],
-    ["Remote", /\b(?:fully remote|remote (?:role|position|work arrangement)|(?:role|position|job) (?:is|will be) (?:a )?remote|work from home)\b/],
-    ["In-person", /\b(?:on site (?:role|position|work)|onsite (?:role|position|work)|in person (?:role|position|work)|(?:role|position|job) (?:is|will be) (?:an? )?(?:on site|onsite|in person|in office|office based)|(?:work|working) (?:on site|onsite|in person|in the office|in our office))\b/],
-  ];
-  return arrangements.find(([, pattern]) => pattern.test(description))?.[0] || "";
+  const remoteAlternative = /\b(?:or|work|working|based|held) remotely (?:in|from|within|across)\b/.test(description) &&
+    !/\b(?:not|cannot) (?:work|be based|be held) remotely\b/.test(description);
+  const hybridSchedule = /\b(?:work (?:in|from) (?:the|our) office \d+ days|in office \d+ days(?: per| a)? week)\b/.test(description);
+  const explicit = /\bhybrid\b/.test(label) ? "Hybrid" :
+    /\b(?:remote|work from home|distributed)\b/.test(label) && !/\b(?:not|no) (?:fully )?remote\b/.test(label) ? "Remote" :
+    /\b(?:on site|onsite|in person|in office|office based)\b/.test(label) ? "In-person" : "";
+  if (listing.provider === "jobicy") return ["Remote"];
+  const arrangements = new Set(explicit ? [explicit] : []);
+  // Explicit alternatives (e.g. a hybrid hub or working remotely in the US)
+  // describe distinct choices, unlike generic mentions of remote collaboration.
+  if (remoteAlternative) arrangements.add("Remote");
+  if ((!explicit || remoteAlternative) && hybridSchedule) arrangements.add("Hybrid");
+  if (arrangements.size) return [...arrangements];
+  if (/\b(?:hybrid (?:role|position|work|schedule|model|arrangement)|(?:role|position|job) (?:is|will be) (?:a )?hybrid)\b/.test(description)) return ["Hybrid"];
+  if (!/\b(?:not|no) (?:fully )?remote\b/.test(description) &&
+      /\b(?:fully remote|remote (?:role|position|work arrangement)|(?:role|position|job) (?:is|will be) (?:a )?remote|work from home)\b/.test(description)) return ["Remote"];
+  if (/\b(?:on site (?:role|position|work)|onsite (?:role|position|work)|in person (?:role|position|work)|(?:role|position|job) (?:is|will be) (?:an? )?(?:on site|onsite|in person|in office|office based)|(?:work|working) (?:on site|onsite|in person|in the office|in our office))\b/.test(description)) return ["In-person"];
+  return [];
+}
+
+export function listingWorkArrangement(listing) {
+  return arrangementEvidence(listing).join(" / ");
 }
 
 export function matchesWorkArrangement(work, listing) {
-  return !work || listingWorkArrangement(listing) === work;
+  return !work || arrangementEvidence(listing).includes(work);
 }
 
 export function matchesSearchLocation(place, listing, work = "") {
@@ -123,22 +134,29 @@ export function matchesSearchLocation(place, listing, work = "") {
   const term = preferenceWords(place);
   const stateSelected = Object.entries(states).some(([code, name]) => preferenceWords(code) === term || preferenceWords(name) === term);
   if (work !== "Remote" || !stateSelected) return false;
-  // A remote job restricted to a different state is not nationwide. Generic
-  // remote postings with no country/state cannot confirm state eligibility.
+  // Some employers list their physical hubs alongside explicitly nationwide
+  // remote eligibility. A named hub does not cancel that published option.
+  const description = preferenceWords(listing.description || "");
   const nationwide = /\b(?:US|USA|United States)\b|\bU\.S\.(?:A\.)?/i.test(listing.location);
   const restricted = Object.values(states).some(state => matchesJobLocation(state, listing.location));
-  return nationwide && !restricted;
+  const describedNationwide = /\bremote(?:ly)? (?:in|from|within|across|anywhere in) (?:the )?(?:united states|usa|us)\b/.test(description);
+  const alternativeNationwide = /\bor remotely (?:in|from|within|across) (?:the )?(?:united states|usa|us)\b/.test(description);
+  return ((nationwide || describedNationwide) && !restricted) || (nationwide && alternativeNationwide);
+}
+
+export function searchLevelStatus(level, listing, strict = false) {
+  const label = listing.title + " " + (listing.seniority || "");
+  if (!strict || !["Entry level", "Mid-level", "Senior"].includes(level)) return matchesJobLevel(level, label) ? "match" : "mismatch";
+  const explicit = ["Senior", "Mid-level", "Entry level"].find(choice => matchesJobLevel(choice, label));
+  if (explicit) return explicit === level ? "match" : "mismatch";
+  if (["Director", "Executive"].some(choice => matchesJobLevel(choice, label))) return "mismatch";
+  const matches = [...(listing.description || "").matchAll(/\b(\d{1,2})(?:\s*[-–]\s*\d{1,2})?\+?\s*years?['’]?\s+(?:of\s+)?(?:\w+\s+){0,3}experience\b/gi)];
+  if (!matches.length) return "unknown";
+  const years = Math.max(...matches.map(match => Number(match[1])));
+  const inferred = years < 3 ? "Entry level" : years < 6 ? "Mid-level" : "Senior";
+  return level === inferred ? "match" : "mismatch";
 }
 
 export function matchesSearchLevel(level, listing, strict = false) {
-  const label = listing.title + " " + (listing.seniority || "");
-  if (!strict || !["Entry level", "Mid-level", "Senior"].includes(level)) return matchesJobLevel(level, label);
-  const explicit = ["Senior", "Mid-level", "Entry level"].find(choice => matchesJobLevel(choice, label));
-  if (explicit) return explicit === level;
-  if (["Director", "Executive"].some(choice => matchesJobLevel(choice, label))) return false;
-  const matches = [...(listing.description || "").matchAll(/\b(\d{1,2})(?:\s*[-–]\s*\d{1,2})?\+?\s*years?\s+(?:of\s+)?(?:\w+\s+){0,3}experience\b/gi)];
-  if (!matches.length) return false;
-  const years = Math.max(...matches.map(match => Number(match[1])));
-  const inferred = years < 3 ? "Entry level" : years < 6 ? "Mid-level" : "Senior";
-  return level === inferred;
+  return searchLevelStatus(level, listing, strict) === "match";
 }
