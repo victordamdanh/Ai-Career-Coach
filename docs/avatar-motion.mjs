@@ -11,6 +11,7 @@ export const EYE_FRAMES = 4; // 0 open, 1-2 eyelid sliding down, 3 closed
 const BLINK = [[80, 1], [160, 2], [290, 3], [370, 2], [460, 1]];
 const BLINK_MS = BLINK[BLINK.length - 1][0];
 const NOD_MS = 900;
+const LEAD_MS = 70;
 
 // How open the mouth is for the sound at a text position: open vowels widest,
 // rounded and narrow sounds smaller, lips together for b, m and p, closed between words.
@@ -116,11 +117,16 @@ export function createAvatarMotion(element, environment = window) {
 
   function mouthTarget(timestamp) {
     if (!speakingText) return 0;
-    const position = textPosition(timestamp);
+    // Lips shape a sound slightly before it is heard.
+    const position = textPosition(timestamp + LEAD_MS);
     const index = Math.floor(position);
     if (index >= speakingText.length) return 0;
     // With word timing from the voice, finish the current word and wait for the next one.
-    if (heardBoundary && index >= wordEnd) return 0;
+    // Inside a phrase the lips relax slightly open; they close at punctuation or a long wait.
+    if (heardBoundary && index >= wordEnd) {
+      const phraseContinues = /\s/.test(speakingText[wordEnd] ?? "") && timestamp - anchorAt < 650;
+      return phraseContinues ? 0.2 : 0;
+    }
     // Before the first word is heard, keep the lips together: voices can take up to a
     // second to start. Voices that never report words get 1.2 seconds, then run on timing.
     if (!heardBoundary && (voiceReportsWords || timestamp - anchorAt < 1200)) return 0;
@@ -140,7 +146,7 @@ export function createAvatarMotion(element, environment = window) {
       const at = position + offset;
       if (at >= start && at < end) total += speechMouthWeight(speakingText, at) * (offset === 0 ? 2 : 1);
     }
-    return Math.min(1, total / 6 * wordScale * 1.55);
+    return Math.min(1, total / 6 * wordScale * 1.9);
   }
 
   function draw(timestamp) {
@@ -157,7 +163,7 @@ export function createAvatarMotion(element, environment = window) {
 
     // Mouth: open quickly on a vowel, close a little more slowly.
     const target = mouthTarget(timestamp);
-    mouth = approach(mouth, target, target > mouth ? 110 : 150, step);
+    mouth = approach(mouth, target, target > mouth ? 70 : 115, step);
     talk = approach(talk, speakingText ? 1 : 0, speakingText ? 180 : 450, step);
     if (!speakingText && mouth < 0.01) mouth = 0;
     if (!speakingText && talk < 0.01) talk = 0;
