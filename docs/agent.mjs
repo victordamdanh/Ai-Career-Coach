@@ -1,4 +1,4 @@
-import { fallbackRows, matchActions, modelRows, sourceExcerpts } from "./match-evidence.mjs?v=a8dcd58c38ef";
+import { fallbackRows, matchActions, modelRows, sourceExcerpts } from "./match-evidence.mjs?v=8608613e0c98";
 
 const FULL_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 const FAST_MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
