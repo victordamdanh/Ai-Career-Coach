@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
-<link rel="stylesheet" href="./styles.css?v=d81397550915">
-<script type="module" src="./app.mjs?v=d81397550915"></script>
+<link rel="stylesheet" href="./styles.css?v=82887e8a0dfc">
+<script type="module" src="./app.mjs?v=82887e8a0dfc"></script>
 </head>
 <body>
 <header>
@@ -59,7 +59,7 @@
         <li><strong>Check job fit</strong><span>Compare qualifications against evidence in your resume.</span></li>
         <li><strong>Prepare an application</strong><span>Draft a cover note and review it before applying.</span></li>
         <li><strong>Check a recruiter reply</strong><span>Spot possible interview invitations in a message.</span></li>
-        <li><strong>Practice an interview</strong><span>Answer a role-specific question by voice or text and get feedback.</span></li>
+        <li><strong>Practice an interview</strong><span>Speak with a virtual interviewer on camera and receive automatic feedback.</span></li>
         <li><strong>Ask Career Chat</strong><span>Get help with resume bullets, applications, and interview prep.</span></li>
       </ul>
     </section>
@@ -196,38 +196,47 @@
   </section>
 
   <section data-page="interview" hidden aria-labelledby="interview-title">
-    <div class="page-heading"><h1 id="interview-title" tabindex="-1">Interview practice</h1><p>Practice answering a role-specific question and get feedback on your response.</p></div>
+    <div class="page-heading"><h1 id="interview-title" tabindex="-1">Interview practice</h1><p>Practice a face-to-face interview with Maya. Your spoken answers are analyzed when the interview ends.</p></div>
     <div class="flow-actions"><a class="button" href="#chat">Continue to Career Chat</a></div>
     <div class="panel"><div class="section">
-      <div class="interview-call">
-        <div id="interviewer-avatar" class="interviewer-avatar" data-phase="ready">
-          <div class="interviewer-portrait" aria-hidden="true">
-            <div class="avatar-shoulders"></div>
-            <div class="avatar-face"><i></i><i></i><span></span></div>
-          </div>
-          <strong>Maya · AI interviewer</strong>
-          <span id="interviewer-state">Ready</span>
-        </div>
-        <video id="camera" aria-label="Your local camera preview" muted autoplay playsinline hidden></video>
-      </div>
-      <p id="question" aria-live="polite">Start an interview to hear your first question.</p>
-      <div class="buttons">
-        <button id="make-question" type="button">Start interview</button>
-        <button id="pause-interview" type="button" class="secondary" disabled>Pause</button>
-        <button id="end-interview" type="button" class="secondary" disabled>End interview</button>
-      </div>
-      <label for="answer">Your answer</label><textarea id="answer" maxlength="3000" placeholder="Type an answer or use the microphone." disabled></textarea>
-      <div class="buttons">
-        <button id="dictate" type="button" class="secondary" disabled>Answer by voice</button>
-        <button id="speak" type="button" class="secondary" disabled>Replay question</button>
-        <button id="toggle-camera" type="button" class="secondary" disabled>Turn on camera preview</button>
-        <button id="submit-answer" type="button" disabled>Submit answer</button>
-      </div>
-      <p id="practice-status" class="hint" role="status"></p><div id="feedback-result"></div>
-      <p class="hint">Practice three questions or end early for feedback. Pausing or ending turns off the microphone and camera. Voice and video are optional.</p>
+      <div class="buttons"><button id="make-question" type="button">Start interview</button></div>
+      <p class="hint">Join a voice interview with your camera preview. Allow microphone and camera access when prompted. Answer up to three questions, pause whenever you need, or end early to get feedback.</p>
+      <p id="practice-status" class="hint" role="status"></p>
+      <div id="feedback-result" aria-live="polite" tabindex="-1"></div>
     </div></div>
+    <dialog id="interview-room" class="interview-room" aria-labelledby="interview-room-title">
+      <header class="room-heading">
+        <h2 id="interview-room-title">Interview room</h2>
+        <span id="room-round">Question 1 of 3</span>
+      </header>
+      <div class="interview-stage">
+        <div id="interviewer-avatar" class="interviewer-avatar" data-stage="ready">
+          <img class="interviewer-portrait" src="./interviewer-bf80c53f7c.png" alt="Maya, the AI interviewer" loading="lazy" decoding="async">
+          <div class="interviewer-label"><strong>Maya · AI interviewer</strong><span id="interviewer-state" role="status">Ready</span></div>
+        </div>
+        <div class="interview-self-view">
+          <video id="camera" aria-label="Your local camera preview" muted autoplay playsinline hidden></video>
+          <span id="camera-placeholder">Camera off</span><span class="self-view-name">You</span>
+        </div>
+      </div>
+      <div class="interview-conversation">
+        <p id="question" aria-live="polite"></p>
+        <div class="voice-status">
+          <span id="voice-indicator" class="voice-indicator">Microphone off</span>
+          <span id="room-status" role="status"></span>
+        </div>
+        <p id="interview-transcript" class="interview-transcript"></p>
+      </div>
+      <div class="room-controls">
+        <button id="dictate" type="button" class="secondary" hidden>Enable microphone</button>
+        <button id="speak" type="button" class="secondary" disabled>Repeat question</button>
+        <button id="toggle-camera" type="button" class="secondary" disabled>Turn camera on</button>
+        <button id="submit-answer" type="button" class="secondary" hidden>Finish answer</button>
+        <button id="pause-interview" type="button" class="secondary" disabled>Pause</button>
+        <button id="end-interview" type="button" class="end-interview" disabled>End interview</button>
+      </div>
+    </dialog>
   </section>
-
   <section data-page="chat" hidden aria-labelledby="chat-title">
     <div class="page-heading"><h1 id="chat-title" tabindex="-1">Career Chat</h1><p>Ask your career agent to review your resume, find live openings, or explain your job match.</p></div>
     <div class="flow-actions"><a class="button" href="#profile">Continue to Saved Profile and Jobs</a></div>
