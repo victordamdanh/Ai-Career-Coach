@@ -1,4 +1,4 @@
-import { checkRemoteListing, companyBoards, fetchListing, fetchListings, recommendCompanies } from "./listings.mjs";
+import { checkRemoteListing, companyBoards, fetchListing, fetchListings, fetchRemoteListing, recommendCompanies } from "./listings.mjs";
 import { jobs, resume, description, walkthrough } from "./data.mjs";
 
 const categoriesList = ["skills", "experience", "education", "certifications", "projects"];
@@ -36,6 +36,14 @@ export async function api(request) {
       return Response.json({ error: "Check the job search fields and try again." }, { status: 400 });
     }
     return Response.json(await recommendCompanies({ roles, place, level, pay, skills, includeRemote: true }));
+  }
+  if (path === "/api/remote-listing" && request.method === "GET") {
+    const params = new URL(request.url).searchParams;
+    try {
+      return Response.json(await fetchRemoteListing(params.get("id"), params.get("title")));
+    } catch (error) {
+      return Response.json({ error: error.message }, { status: 502 });
+    }
   }
   if (path === "/api/remote-status" && request.method === "GET") {
     try {

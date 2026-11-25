@@ -1,6 +1,6 @@
-import { createCareerChatAgent } from "./chat-agent.mjs?v=82887e8a0dfc";
-import { resumeExcerpt } from "./resume-review.mjs?v=82887e8a0dfc";
-import { workflowSummary } from "./workflow.mjs?v=82887e8a0dfc";
+import { createCareerChatAgent } from "./chat-agent.mjs?v=ab1aeb4840d4";
+import { resumeExcerpt } from "./resume-review.mjs?v=ab1aeb4840d4";
+import { workflowSummary } from "./workflow.mjs?v=ab1aeb4840d4";
 
 export function attachChat({ $, status, el, browserModel, request, json, getContext, getWorkflow, officialLink, onDeviceOnly }) {
   const transcript = $("chat-history");

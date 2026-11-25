@@ -1,5 +1,5 @@
-import { attachInterview } from "./interview.mjs?v=82887e8a0dfc";
-import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=82887e8a0dfc";
+import { attachInterview } from "./interview.mjs?v=ab1aeb4840d4";
+import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=ab1aeb4840d4";
 
 export async function extractResume(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Use a resume file up to 5 MB.");
@@ -77,7 +77,7 @@ export function reviewInterviewAnswer(question, answer, response) {
 
 export function attachCareerSteps({
   $, status, el, browserModel, onResume,
-  onReview, onInboxCheck, getInterviewContext, onInterviewFeedback,
+  onReview, onInboxCheck, getInterviewContext, refreshInterviewContext, onInterviewFeedback,
 }) {
   let uploadedFile;
   let uploadVersion = 0;
@@ -168,7 +168,7 @@ export function attachCareerSteps({
     onInboxCheck?.(invited);
   });
   return attachInterview({
-    $, status, el, browserModel, getInterviewContext, reviewAnswer: reviewInterviewAnswer,
+    $, status, el, browserModel, getInterviewContext, refreshInterviewContext, reviewAnswer: reviewInterviewAnswer,
     onFeedback: onInterviewFeedback,
   });
 }

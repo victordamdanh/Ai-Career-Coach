@@ -156,8 +156,60 @@ input[type=file]::file-selector-button{border:1px solid #abc0b3;border-radius:6p
   border-radius: 12px;
   background: #0e1918;
 }
-.interviewer-avatar { position: absolute; inset: 0; display: grid; place-items: center; }
-.interviewer-portrait { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
+.interviewer-avatar { position: absolute; inset: 0; display: grid; place-items: center; container-type: size; }
+.room-position { margin: 4px 0 0; color: #c3d6ce; font-size: .83rem; }
+.room-source { display: flex; flex-wrap: wrap; gap: 6px; font-size: .75rem; color: #b3cbbd; }
+.room-source a { color: #b9e4cc; }
+.maya-motion {
+  --maya-mouth: 0;
+  --maya-blink: 0;
+  position: relative;
+  width: min(100%, 560px);
+  height: 100%;
+  aspect-ratio: 1;
+  width: 100cqmin;
+  height: 100cqmin;
+  max-width: 100%;
+  max-height: 100%;
+  transform: translate(var(--maya-head-x, 0px), var(--maya-head-y, 0px)) rotate(var(--maya-head-angle, 0deg)) scale(1.006);
+  transform-origin: 50% 62%;
+  will-change: transform;
+}
+.interviewer-portrait,.maya-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+.maya-layer { pointer-events: none; }
+.maya-breathing {
+  mask-image: linear-gradient(to top, #000 0%, #000 36%, transparent 53%);
+  transform-origin: 50% 79%;
+  transform: scaleY(var(--maya-breath, 1));
+}
+.maya-gaze, .maya-blink {
+  mask-image: radial-gradient(ellipse 7.8% 4.3% at 44% 29.4%, #000 43%, transparent 100%),
+    radial-gradient(ellipse 7.8% 4.7% at 57.3% 28.5%, #000 43%, transparent 100%);
+}
+.maya-gaze {
+  transform: translate(var(--maya-eye-x, 0px), var(--maya-eye-y, 0px));
+  opacity: .8;
+}
+.maya-mouth {
+  mask-image: radial-gradient(ellipse 12% 7% at 52% 43.8%, #000 48%, transparent 100%);
+  transform-origin: 52% 43.8%;
+  transform: scaleY(var(--maya-mouth-height, 1));
+  opacity: var(--maya-mouth);
+}
+.maya-blink { opacity: var(--maya-blink); }
+@supports not (mask-image: radial-gradient(#000, transparent)) {
+  .maya-breathing, .maya-gaze { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .maya-motion { transform: none; }
+}
 .interviewer-avatar[data-stage="speaking"] { box-shadow: inset 0 0 0 3px #8ad7b5; }
 .interviewer-avatar[data-stage="speaking"] .interviewer-label { border-color: #8ad7b5; }
 .interviewer-label {

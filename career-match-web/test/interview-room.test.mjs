@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { attachInterview } from "../web/interview.mjs";
+import { attachInterview, practiceQuestion } from "../web/interview.mjs";
 import { reviewInterviewAnswer } from "../web/career-steps.mjs";
 
 async function settle() {
@@ -74,8 +74,8 @@ function setup(t, { modelUnavailable = false, cameraPromise } = {}) {
     reviewAnswer: reviewInterviewAnswer,
   });
 
-  function silence() {
-    const timer = [...timers].find(([, item]) => item.milliseconds === 4200);
+  function silence(milliseconds = 4200) {
+    const timer = [...timers].find(([, item]) => item.milliseconds === milliseconds);
     assert.ok(timer, "automatic answer timer");
     timers.delete(timer[0]);
     timer[1].callback();
@@ -134,4 +134,27 @@ test("a late camera stream is released if the interview was paused during permis
   assert.equal(room.$("camera").hidden, true);
   room.stop();
   assert.equal(room.$("interview-room").open, false);
+});
+
+test("detected speech completion automatically acknowledges and asks the next question", async t => {
+  const room = setup(t);
+  room.$("make-question").click();
+  await settle();
+  room.speech.at(-1).onend();
+  room.listeners.at(-1).result("I used SQL to validate the source data.");
+  room.listeners.at(-1).onspeechend();
+  room.silence(2200);
+  await settle();
+  assert.equal(room.speech.length, 2);
+  assert.match(room.speech.at(-1).text, /^Thank you\./);
+  room.stop();
+});
+
+test("fallback questions include the employer, role, level and a matched requirement", () => {
+  const entry = { role: "Systems Analyst", company: "Example Company", level: "Entry level",
+    matchPriorities: ["Requirements gathering and stakeholder communication"] };
+  assert.match(practiceQuestion(entry, 0), /Example Company/);
+  assert.match(practiceQuestion(entry, 0), /class project/);
+  assert.match(practiceQuestion({ ...entry, level: "Senior" }, 0), /complex decision/);
+  assert.match(practiceQuestion(entry, 1), /Requirements gathering/);
 });

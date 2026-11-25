@@ -77,7 +77,7 @@ export function reviewInterviewAnswer(question, answer, response) {
 
 export function attachCareerSteps({
   $, status, el, browserModel, onResume,
-  onReview, onInboxCheck, getInterviewContext, onInterviewFeedback,
+  onReview, onInboxCheck, getInterviewContext, refreshInterviewContext, onInterviewFeedback,
 }) {
   let uploadedFile;
   let uploadVersion = 0;
@@ -168,7 +168,7 @@ export function attachCareerSteps({
     onInboxCheck?.(invited);
   });
   return attachInterview({
-    $, status, el, browserModel, getInterviewContext, reviewAnswer: reviewInterviewAnswer,
+    $, status, el, browserModel, getInterviewContext, refreshInterviewContext, reviewAnswer: reviewInterviewAnswer,
     onFeedback: onInterviewFeedback,
   });
 }

@@ -15,6 +15,7 @@ const files = {
   "/inbox.mjs": ["inbox.mjs", "text/javascript; charset=utf-8"],
   "/guided.mjs": ["guided.mjs", "text/javascript; charset=utf-8"],
   "/interview.mjs": ["interview.mjs", "text/javascript; charset=utf-8"],
+  "/avatar-motion.mjs": ["avatar-motion.mjs", "text/javascript; charset=utf-8"],
   "/career-steps.mjs": ["career-steps.mjs", "text/javascript; charset=utf-8"],
   "/job-preferences.mjs": ["job-preferences.mjs", "text/javascript; charset=utf-8"],
   "/preference-pickers.mjs": ["preference-pickers.mjs", "text/javascript; charset=utf-8"],
@@ -25,6 +26,10 @@ const assets = Object.fromEntries(await Promise.all(Object.entries(files).map(as
 ])));
 const portrait = await readFile(new URL("web/interviewer-bf80c53f7c.png", root));
 assets["/interviewer-bf80c53f7c.png"] = { type: "image/png", body: portrait.toString("base64"), base64: true };
+// Expression frames stay on the static host so the embedded Worker stays small.
+for (const frame of ["maya-speaking-a6a2e4d45f.png", "maya-blink-bb1ea41801.png"]) {
+  assets["/"].body = assets["/"].body.replace("./" + frame, "https://victordamdanh.github.io/Ai-Career-Coach/" + frame);
+}
 const sources = await Promise.all(["src/data.mjs", "web/job-preferences.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
 const worker = sources.map(source => source.replace(/^import .*?\n/gm, "")).join("\n") + `
 const assets = ${JSON.stringify(assets)};

@@ -1,14 +1,14 @@
-import { createClassroomRequest } from "./request.mjs?v=82887e8a0dfc";
+import { createClassroomRequest } from "./request.mjs?v=ab1aeb4840d4";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=82887e8a0dfc";
-import { attachCareerSteps } from "./career-steps.mjs?v=82887e8a0dfc";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=82887e8a0dfc";
-import { attachChat } from "./chat.mjs?v=82887e8a0dfc";
-import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=82887e8a0dfc";
-import { applicationKey, createApplicationQueue } from "./guided.mjs?v=82887e8a0dfc";
-import { canNavigateWorkflow } from "./workflow.mjs?v=82887e8a0dfc";
-import { attachPreferencePickers } from "./preference-pickers.mjs?v=82887e8a0dfc";
-import { draftFromEvidence } from "./match-evidence.mjs?v=82887e8a0dfc";
+import { browserModel, createAgent } from "./agent.mjs?v=ab1aeb4840d4";
+import { attachCareerSteps } from "./career-steps.mjs?v=ab1aeb4840d4";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=ab1aeb4840d4";
+import { attachChat } from "./chat.mjs?v=ab1aeb4840d4";
+import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=ab1aeb4840d4";
+import { applicationKey, createApplicationQueue } from "./guided.mjs?v=ab1aeb4840d4";
+import { canNavigateWorkflow } from "./workflow.mjs?v=ab1aeb4840d4";
+import { attachPreferencePickers } from "./preference-pickers.mjs?v=ab1aeb4840d4";
+import { draftFromEvidence } from "./match-evidence.mjs?v=ab1aeb4840d4";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -36,6 +36,7 @@ let invitationDetected = false;
 let guided = false;
 let resumeFile;
 let interviewFromInbox;
+let recentApplication;
 let requestedPractice = false;
 let automaticRun;
 let automaticDestination;
@@ -100,6 +101,9 @@ function renderPage({ scroll = false } = {}) {
   }
   if (hash === "method" && next === "match") document.querySelector(".method").open = true;
   if (changed && next === "match" && target && !lastResult) compareResume(guided);
+  if (changed && next === "interview") {
+    for (const image of $("interview-room").querySelectorAll(".maya-motion img")) image.loading = "eager";
+  }
 }
 
 function goTo(page) {
@@ -835,7 +839,8 @@ $("stop-automatic").addEventListener("click", stopAutomaticRun);
 $("file").addEventListener("change", stopAutomaticRun);
 
 function recordApplicationSubmission(posting, address) {
-  applications.markSubmitted(posting, address);
+  recentApplication = { ...posting, level: posting.level || posting.seniority || $("level").value.trim() };
+  applications.markSubmitted(recentApplication, address);
   if (!guided || currentPage !== "application" || !target || applicationKey(posting) !== applicationKey(target)) return;
   const notice = $("automatic-inbox-note");
   notice.textContent = "Application recorded for " + posting.company + ". Connect Gmail for follow-up checks or paste the recruiter’s reply.";
@@ -856,12 +861,37 @@ const stopInterview = attachCareerSteps({
   $, status, el, browserModel, onResume: setResume,
   onReview(result) { resumeReview = result; },
   onInboxCheck: recordInboxCheck,
-  getInterviewContext: () => ({
-    role: interviewFromInbox?.title ?? target?.title ?? $("role").value,
-    job: (interviewFromInbox?.excerpt ?? job.value).slice(0, 1200),
-    invitationDetected,
-    matchPriorities: interviewFromInbox?.priorities ?? unmatchedPriorities(),
-  }),
+  refreshInterviewContext: async context => {
+    const source = context.source;
+    if (!source?.id) return context;
+    const posting = source.provider === "jobicy"
+      ? await request("remote-listing?" + new URLSearchParams({ id: source.id, title: context.role }))
+      : source.companyId ? await request("listing?" + new URLSearchParams({ company: source.companyId, id: source.id })) : null;
+    if (!posting || String(posting.id) !== String(source.id)) throw new Error("The original job posting is unavailable.");
+    return {
+      ...context,
+      role: posting.title || context.role,
+      company: posting.company || context.company,
+      level: posting.seniority || context.level,
+      job: (posting.excerpt || context.job).slice(0, 1200),
+      sourceUrl: posting.url || context.sourceUrl,
+    };
+  },
+  getInterviewContext: () => {
+    const applied = recentApplication && (!target || applicationKey(target) === applicationKey(recentApplication))
+      ? recentApplication : undefined;
+    const selected = interviewFromInbox || applied || target;
+    return {
+      role: selected?.title || $("role").value.trim(),
+      company: selected?.company || "",
+      sourceUrl: selected?.url || "",
+      source: selected ? { id: selected.id, companyId: selected.companyId, provider: selected.provider } : undefined,
+      level: selected?.level || selected?.seniority || (interviewFromInbox || applied ? "" : $("level").value.trim()),
+      job: (selected?.excerpt ?? job.value).slice(0, 1200),
+      invitationDetected,
+      matchPriorities: selected?.priorities ?? unmatchedPriorities(),
+    };
+  },
   onInterviewFeedback() { completed.add("interview"); },
 });
 syncResumePreview();
@@ -915,7 +945,7 @@ attachRecruiterEmail({
   $, status,
   getApplication: () => {
     if (!target) return;
-    return { posting: { ...target, priorities: unmatchedPriorities() }, file: resumeFile, draft: $("draft").value };
+    return { posting: { ...target, priorities: unmatchedPriorities(), level: target.seniority || $("level").value.trim() }, file: resumeFile, draft: $("draft").value };
   },
   onSent: recordApplicationSubmission,
 });
