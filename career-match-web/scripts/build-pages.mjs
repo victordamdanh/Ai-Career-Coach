@@ -34,6 +34,6 @@ await Promise.all(Object.entries(assets).map(([name, content]) => writeFile(
     Object.hasOwn(assets, asset) ? quote + "./" + asset + "?v=" + version + quote : match),
 )));
 
-for (const portrait of ["interviewer-bf80c53f7c.png", "maya-speaking-a6a2e4d45f.png", "maya-blink-bb1ea41801.png"]) {
+for (const portrait of ["maya-room-cba388ece6.webp", "maya-body-5b836358ba.webp", "maya-head-cb0fa2c051.webp", "maya-mouth-1b64935fdd.webp", "maya-eyes-a3a7eca425.webp"]) {
   await copyFile(new URL("web/" + portrait, root), new URL(portrait, output));
 }
