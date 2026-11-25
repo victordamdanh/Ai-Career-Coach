@@ -1,4 +1,4 @@
-import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget, states } from "./job-preferences.mjs?v=63aabc1cd84f";
+import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget, states } from "./job-preferences.mjs?v=3ea1b7ee0216";
 
 export const companyBoards = {
   anthropic: "Anthropic", airbnb: "Airbnb", cloudflare: "Cloudflare", databricks: "Databricks",
