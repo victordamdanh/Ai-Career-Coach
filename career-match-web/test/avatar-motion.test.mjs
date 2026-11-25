@@ -48,10 +48,16 @@ test("Maya talks with a moving mouth, then returns to her resting smile", () => 
   const { motion, frames, get, mouthFrame, run, time } = harness();
   motion.setActive(true);
   motion.setMode("speaking");
-  motion.startSpeech("Tell me about a time you solved a hard problem at work.", 1);
+  // Word timing like the macOS Samantha voice: about 20 letters per second.
+  const text = "Tell me about a time you solved a hard problem at work.";
+  motion.startSpeech(text, 1);
+  const starts = [...text.matchAll(/\S+/g)].map(word => [word.index, time() + 100 + word.index * 50]);
   const seen = [];
-  run(3500, () => seen.push(mouthFrame()));
-  const speaking = seen.slice(8);
+  run(time() + 3200, () => {
+    while (starts.length && time() >= starts[0][1]) motion.speechBoundary(starts.shift()[0]);
+    seen.push(mouthFrame());
+  });
+  const speaking = seen.slice(5, 85);
   assert.ok(Math.max(...speaking) > 6, "opens on vowels");
   assert.ok(Math.min(...speaking) < 5, "closes between syllables");
   let peaks = 0;
@@ -122,6 +128,9 @@ test("the mouth follows the spoken words: it waits for the voice to reach the ne
   motion.setActive(true);
   motion.setMode("speaking");
   motion.startSpeech("Hello there, how are you today?", 1);
+  let early = 0;
+  run(time() + 600, () => { early = Math.max(early, mouthFrame()); });
+  assert.ok(early < 3.6, "lips stay together until the voice actually starts");
   motion.speechBoundary(0); // "Hello" starts
   let opened = 0;
   run(time() + 450, () => { opened = Math.max(opened, mouthFrame()); });
@@ -134,4 +143,31 @@ test("the mouth follows the spoken words: it waits for the voice to reach the ne
   let reopened = 0;
   run(time() + 350, () => { reopened = Math.max(reopened, mouthFrame()); });
   assert.ok(reopened > 5, "opens again on the next word");
+});
+
+test("after a voice has reported words once, the next question waits for its first word", () => {
+  const { motion, mouthFrame, run, time } = harness();
+  motion.setActive(true);
+  motion.startSpeech("First question.", 1);
+  motion.speechBoundary(0);
+  run(time() + 1500);
+  motion.endSpeech();
+  run(time() + 800);
+  motion.startSpeech("Second question takes a moment to start.", 1);
+  let most = 0;
+  run(time() + 2000, () => { most = Math.max(most, mouthFrame()); });
+  assert.ok(most < 3.6, "no mouth movement during the silence before the voice starts");
+  motion.speechBoundary(0);
+  run(time() + 400, () => { most = Math.max(most, mouthFrame()); });
+  assert.ok(most > 5);
+});
+
+test("voices without word timing still move the mouth after a short wait", () => {
+  const { motion, mouthFrame, run, time } = harness();
+  motion.setActive(true);
+  motion.startSpeech("Tell me about a time you solved a hard problem at work.", 1);
+  const seen = [];
+  run(time() + 4000, () => seen.push(mouthFrame()));
+  assert.ok(seen.slice(0, 30).every(frame => frame < 3.6), "waits first");
+  assert.ok(Math.max(...seen.slice(40)) > 5.5, "then talks");
 });

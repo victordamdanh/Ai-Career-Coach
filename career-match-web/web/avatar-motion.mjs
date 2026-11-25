@@ -61,7 +61,8 @@ export function createAvatarMotion(element, environment = window) {
   let anchorAt = 0;
   let charactersPerSecond = 13;
   let lastWord = -1;
-  let heardBoundary = false; // the voice reports when each word starts
+  let heardBoundary = false; // the voice has reported a word in this question
+  let voiceReportsWords = false; // the voice reported words before, so wait for them
   let wordEnd = 0;
   let wordScale = 1;
   let mouth = 0;
@@ -120,6 +121,9 @@ export function createAvatarMotion(element, environment = window) {
     if (index >= speakingText.length) return 0;
     // With word timing from the voice, finish the current word and wait for the next one.
     if (heardBoundary && index >= wordEnd) return 0;
+    // Before the first word is heard, keep the lips together: voices can take up to a
+    // second to start. Voices that never report words get 1.2 seconds, then run on timing.
+    if (!heardBoundary && (voiceReportsWords || timestamp - anchorAt < 1200)) return 0;
     // Each word gets its own loudness, so the mouth does not open the same way every time.
     const wordStart = speakingText.lastIndexOf(" ", index) + 1;
     if (wordStart !== lastWord) {
@@ -232,7 +236,7 @@ export function createAvatarMotion(element, environment = window) {
       lastWord = -1;
       heardBoundary = false;
       wordEnd = speakingText.length;
-      charactersPerSecond = Math.max(9, Math.min(18, 13.5 * rate));
+      charactersPerSecond = Math.max(10, Math.min(26, 16 * rate));
       if (random() < 0.35) blink(anchorAt);
     },
 
@@ -242,11 +246,12 @@ export function createAvatarMotion(element, environment = window) {
       const elapsed = timestamp - anchorAt;
       if (index > anchor && elapsed > 100) {
         const rate = (index - anchor) * 1000 / elapsed;
-        if (rate >= 6 && rate <= 26) charactersPerSecond = Math.max(9, Math.min(19, charactersPerSecond * 0.7 + rate * 0.3));
+        if (rate >= 6 && rate <= 34) charactersPerSecond = Math.max(10, Math.min(28, charactersPerSecond * 0.6 + rate * 0.4));
       }
       anchor = index;
       anchorAt = timestamp;
       heardBoundary = true;
+      voiceReportsWords = true;
       const after = speakingText.slice(index).search(/[\s.,;:?!]/);
       wordEnd = after < 0 ? speakingText.length : index + after;
     },
