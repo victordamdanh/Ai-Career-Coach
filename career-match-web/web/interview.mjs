@@ -491,10 +491,19 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     feedback.replaceChildren(el("h3", "Interview feedback · " + sum + "/100"),
       el("p", result.mode + " · " + turns.length + " spoken answer(s) reviewed", "hint"),
       el("p", result.criteria.map(item => item.name + " " + item.points + "/20").join(" · ")), notes, transcriptList);
+    const saveHistory = el("a", "Name and save interview", "button secondary");
+    saveHistory.href = "#profile";
+    feedback.append(saveHistory);
     feedbackBusy = false;
-    onFeedback?.();
+    onFeedback?.({
+      createdAt: new Date().toISOString(),
+      role: (context.role || "").slice(0, 300), company: (context.company || "").slice(0, 100),
+      level: (context.level || "").slice(0, 100), sourceUrl: context.sourceUrl || "",
+      score: sum, mode: result.mode, criteria: result.criteria, feedback: result.feedback.map(note => note.slice(0, 2000)),
+      turns: turns.map(turn => ({ question: turn.question.slice(0, 500), answer: turn.answer.slice(0, 8000), truncated: turn.answer.length > 8000 })),
+    });
     update();
-    status("practice-status", "Your interview feedback is ready.");
+    status("practice-status", "Your interview feedback is ready. Name and save it in Saved Profile.");
     if (!$("interview-title").closest("[data-page]")?.hidden) feedback.focus();
   }
 

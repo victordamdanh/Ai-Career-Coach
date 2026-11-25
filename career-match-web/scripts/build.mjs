@@ -3,6 +3,8 @@ import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const read = path => readFile(new URL(path, root), "utf8");
 const files = {
+  "/history-records.mjs": ["history-records.mjs", "text/javascript; charset=utf-8"],
+  "/profile-history.mjs": ["profile-history.mjs", "text/javascript; charset=utf-8"],
   "/": ["index.html", "text/html; charset=utf-8"],
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
   "/app.mjs": ["app.mjs", "text/javascript; charset=utf-8"],
@@ -30,13 +32,13 @@ for (const layer of ["maya-room-cba388ece6.webp", "maya-body-5b836358ba.webp", "
   const body = await readFile(new URL("web/" + layer, root));
   assets["/" + layer] = { type: "image/webp", body: body.toString("base64"), base64: true };
 }
-const sources = await Promise.all(["src/data.mjs", "web/job-preferences.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
+const sources = await Promise.all(["src/data.mjs", "web/job-preferences.mjs", "src/listings.mjs", "src/api.mjs", "web/history-records.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
 const worker = sources.map(source => source.replace(/^import .*?\n/gm, "")).join("\n") + `
 const assets = ${JSON.stringify(assets)};
 export default {
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
-    if (pathname === "/api/account" || pathname === "/api/saved-jobs") return account(request, env);
+    if (pathname === "/api/account" || pathname === "/api/saved-jobs" || pathname === "/api/history") return account(request, env);
     if (pathname === "/api/chat") return careerChat(request, env);
     if (pathname.startsWith("/api/")) return api(request);
     const asset = Object.hasOwn(assets, pathname) && assets[pathname];
@@ -63,3 +65,5 @@ await writeFile(new URL("dist/server/index.js", root), worker);
 
 await mkdir(new URL("dist/.openai/drizzle/", root), { recursive: true });
 await copyFile(new URL("drizzle/0000_career_match.sql", root), new URL("dist/.openai/drizzle/0000_career_match.sql", root));
+
+await copyFile(new URL("drizzle/0001_history.sql", root), new URL("dist/.openai/drizzle/0001_history.sql", root));

@@ -8,22 +8,22 @@ await mkdir(output, { recursive: true });
 
 const staticFiles = [
   "web/styles.css", "web/workflow.mjs", "web/agent.mjs", "web/match-evidence.mjs", "web/career-steps.mjs", "web/inbox.mjs", "web/chat.mjs", "web/chat-agent.mjs", "web/resume-review.mjs",
-  "web/job-preferences.mjs", "web/preference-pickers.mjs", "web/preference-catalog.mjs", "web/guided.mjs", "web/interview.mjs", "web/avatar-motion.mjs", "web/automatic-preferences.mjs",
+  "web/job-preferences.mjs", "web/preference-pickers.mjs", "web/preference-catalog.mjs", "web/guided.mjs", "web/interview.mjs", "web/avatar-motion.mjs", "web/automatic-preferences.mjs", "web/history-records.mjs", "web/profile-history.mjs", "web/supabase-storage.mjs", "web/supabase-config.mjs",
   "src/api.mjs", "src/data.mjs", "src/listings.mjs", "hosting/pages/request.mjs",
 ];
 const assets = Object.fromEntries(await Promise.all(staticFiles.map(async path => [path.split("/").at(-1), await read(path)])));
 assets["listings.mjs"] = assets["listings.mjs"].replace('from "../web/job-preferences.mjs"', 'from "./job-preferences.mjs"');
 assets["index.html"] = (await read("web/index.html"))
-  .replace("File extraction runs in your browser.", "Public classroom demo. Resume extraction runs in your browser. Profiles and saved jobs are kept only while this page is open.")
-  .replace("Save a resume and your own candidate details for later visits.", "Keep a resume and candidate details while this page is open.")
+  .replace("File extraction runs in your browser.", "Public classroom demo. Resume extraction runs in your browser. Named resume versions, interview records and saved jobs are stored in your private Supabase account when you save them.")
   .replace("If Gemini is configured, Google processes the conversation and any details you choose to include. Remove personal contact information before sharing.", "This public edition runs chat on your device. Live chat requires WebGPU and downloads a model on first use.");
-assets["app.mjs"] = 'import { createClassroomRequest } from "./request.mjs";\nconst classroomRequest = createClassroomRequest();\n' +
+assets["app.mjs"] = 'import { createClassroomRequest, bindSupabaseLogin } from "./request.mjs";\nconst classroomRequest = createClassroomRequest();\n' +
   (await read("web/app.mjs"))
     .replace('fetch("./api/" + path, options)', "classroomRequest(path, options)")
-    .replace("onDeviceOnly: false", "onDeviceOnly: true");
+    .replace("onDeviceOnly: false", "onDeviceOnly: true")
+    .replace('loadAccount().catch(error => status("account-status", error.message, true));\n\n\nfunction syncResumePreview', 'bindSupabaseLogin(loadAccount);\nloadAccount().catch(error => status("account-status", error.message, true));\n\n\nfunction syncResumePreview');
 if (!assets["index.html"].includes("Public classroom demo") ||
   !assets["app.mjs"].includes("await classroomRequest(path, options)") ||
-  !assets["app.mjs"].includes("onDeviceOnly: true")) {
+  !assets["app.mjs"].includes("onDeviceOnly: true") || !assets["app.mjs"].includes("bindSupabaseLogin(loadAccount);")) {
   throw new Error("Public entry points changed. Update the classroom build.");
 }
 assets[".nojekyll"] = "";

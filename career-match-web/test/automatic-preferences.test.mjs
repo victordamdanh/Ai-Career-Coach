@@ -1,3 +1,4 @@
+import { attachProfileHistory } from "../web/profile-history.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { automaticPreferences, rankDepartmentRoles, stateName } from "../web/automatic-preferences.mjs";
@@ -158,7 +159,7 @@ test("Start with AI opens the setup and only starts a strict review/search after
   t.after(() => globalWindow ? Object.defineProperty(globalThis, "window", globalWindow) : delete globalThis.window);
   const noop = () => {};
   const browserModel = async () => async (_system, prompt) => prompt.includes('Select exactly one') ? '{"role":"Data Analyst"}' : "Strength: SQL dashboards. Improve: clarify results and quantify scope.";
-  const bindings = { window, document, fetch, browserModel, createAgent: noop, attachCareerSteps, resumeExcerpt, resumeLimit, resumeProfile,
+  const bindings = { attachProfileHistory, window, document, fetch, browserModel, createAgent: noop, attachCareerSteps, resumeExcerpt, resumeLimit, resumeProfile,
     attachChat: noop, attachInbox: noop, attachRecruiterEmail: noop, applicationKey: noop,
     createApplicationQueue: () => ({ clear: noop, update: noop, selectionControl: noop, trackedJobs: () => [], prepareAutomatic: async () => [] }),
     canNavigateWorkflow, attachPreferencePickers: noop, draftFromEvidence: noop, applicationEvidence, resumeContact, automaticPreferences,

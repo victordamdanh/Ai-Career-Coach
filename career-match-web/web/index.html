@@ -12,7 +12,7 @@
 <header>
   <div class="shell top">
     <a class="brand" href="#upload"><span aria-hidden="true">✦</span> AI Career Match</a>
-    <a class="header-link" href="#features">How it works</a>
+    <div class="header-links"><a class="header-link" href="#features">How it works</a><a class="header-link" href="#profile">My saved records</a></div>
   </div>
 </header>
 <main class="shell">
@@ -292,17 +292,40 @@
   </section>
 
   <section data-page="profile" hidden aria-labelledby="account-title">
-    <div class="page-heading"><h1 id="account-title" tabindex="-1">Saved profile and jobs</h1><p id="profile-note">Save a resume and your own candidate details for later visits.</p></div>
+    <div class="page-heading"><h1 id="account-title" tabindex="-1">Saved profile and jobs</h1><p id="profile-note">Keep named resume versions, interview feedback and saved jobs for later visits.</p></div>
     <div class="flow-actions"><a class="button" href="#upload">Finish and return to Resume</a></div>
     <div class="panel"><div class="section">
       <a id="signin" href="/signin-with-chatgpt?return_to=%2F%23profile" target="_top" hidden>Sign in to save your data</a>
+      <form id="supabase-signin" hidden>
+        <h2>Sign in to your saved records</h2>
+        <p class="hint">Create an account or sign in. Saved records are private to your account.</p>
+        <div class="account-fields"><label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="6"></label></div>
+        <div class="buttons"><button type="submit" value="signin">Sign in</button><button class="secondary" type="submit" value="signup">Create account</button></div>
+        <p class="hint">If email confirmation is required, confirm your address before signing in. For a classroom demo account, ask the project owner if you cannot receive the confirmation.</p>
+      </form>
+      <button id="supabase-signout" class="secondary" type="button" hidden>Sign out</button>
       <form id="account-form" hidden>
         <div class="account-fields"><label>Name<input id="full-name" autocomplete="name" maxlength="100"></label><label>Email<input id="email" type="email" autocomplete="email" maxlength="254"></label><label>Phone<input id="phone" type="tel" autocomplete="tel" maxlength="40"></label></div>
         <div class="buttons"><button>Save profile and current resume</button><button id="load-resume" class="secondary" type="button" disabled>Load saved resume</button><button id="save-job" class="secondary" type="button" disabled>Save selected job</button><button id="delete-account" class="secondary" type="button">Delete my saved data</button></div>
-        <ul id="saved-jobs"></ul>
+        <h3>Saved jobs</h3><ul id="saved-jobs"></ul>
       </form>
       <p id="account-status" class="hint" role="status"></p>
     </div></div>
+    <div id="history-panel" hidden>
+      <section class="panel history-section"><div class="section">
+        <h2>Resume history</h2>
+        <p class="hint">Save the extracted resume text as a named version. To attach the original PDF or Word document to an application, upload the original file again.</p>
+        <div class="history-save"><label>Name this resume<input id="history-resume-name" maxlength="100" placeholder="e.g. Data analyst resume – November"></label><button id="save-resume-record" type="button" disabled>Save current resume</button></div>
+        <div id="resume-history" class="history-list"></div>
+      </div></section>
+      <section class="panel history-section"><div class="section">
+        <h2>Interview history</h2>
+        <p class="hint">Name completed practice interviews to keep their job context, scores, transcript and feedback. No video or audio recordings are saved.</p>
+        <h3 id="pending-note" hidden>Unsaved interviews</h3><div id="pending-interviews" class="history-list"></div>
+        <h3>Saved interviews</h3><div id="interview-history" class="history-list"></div>
+        <p id="history-status" class="hint" role="status"></p>
+      </div></section>
+    </div>
   </section>
 </main>
 </body>
