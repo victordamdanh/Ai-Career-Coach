@@ -1,5 +1,5 @@
-import { attachInterview } from "./interview.mjs?v=3ea1b7ee0216";
-import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=3ea1b7ee0216";
+import { attachInterview } from "./interview.mjs?v=ea3b2d8c97e3";
+import { resumeExcerpt, resumeLimit, reviewResume } from "./resume-review.mjs?v=ea3b2d8c97e3";
 
 export async function extractResume(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Use a resume file up to 5 MB.");
@@ -123,39 +123,54 @@ export function attachCareerSteps({
     panel.append(rows);
     onReview?.(report);
     status("review-status", "Score ready.");
-    return { resume, focus };
+    return { resume, focus, report };
   }
 
-  $("analyze-resume").addEventListener("click", showResumeReview);
-  $("review-ai").addEventListener("click", async event => {
+  let feedbackGeneration = 0;
+  async function reviewResumeWithAI(isCurrent = () => true) {
     const inputs = showResumeReview();
     if (!inputs) return;
-    const button = event.currentTarget;
+    const button = $("review-ai");
     const output = $("review-ai-result");
+    const generation = ++feedbackGeneration;
+    const stillCurrent = () => generation === feedbackGeneration && isCurrent() &&
+      $("resume").value.trim() === inputs.resume &&
+      [$("role").value, $("target-description").value].filter(Boolean).join("\n") === inputs.focus;
     button.disabled = true;
     output.replaceChildren();
     try {
       status("review-status", "Preparing AI feedback…");
-      const generate = await browserModel(progress => status("review-status", "Loading AI feedback (" + progress + "%)…"), { fast: true });
+      const generate = await browserModel(progress => {
+        if (stillCurrent()) status("review-status", "Loading AI feedback (" + progress + "%)…");
+      }, { fast: true });
+      if (!stillCurrent()) return;
       const advice = el("p", "", "sample-text");
       output.append(el("h3", "AI feedback"), advice);
       const text = await generate(
         "You are a concise career coach. Only use the supplied resume text. Avoid inventing results, experience, or numbers.",
-        "Name one strength and give one concrete improvement. Use a placeholder for any missing outcome.",
+        "Name a specific strength and two concrete improvements for the target role. Use a placeholder for any missing outcome.",
         { messages: [{ role: "user", text: resumeExcerpt(inputs.resume, inputs.focus, 2200) }], context: inputs.focus ? { target: inputs.focus.slice(0, 400) } : undefined },
-        { maxTokens: 210, onPartial: value => { advice.textContent = value; } },
+        { maxTokens: 280, onPartial: value => { if (stillCurrent()) advice.textContent = value; } },
       );
-      if ($("resume").value.trim() !== inputs.resume) return;
+      if (!stillCurrent()) return;
       advice.textContent = text;
       status("review-status", "Score and AI feedback ready.");
     } catch {
-      if ($("resume").value.trim() !== inputs.resume) return;
-      output.replaceChildren();
-      status("review-status", "Your score is ready. AI feedback is temporarily unavailable.", true);
+      if (!stillCurrent()) return;
+      const ranked = [...inputs.report.criteria].sort((a, b) => b.points - a.points);
+      const list = el("ul");
+      for (const criterion of [ranked[0], ...ranked.slice(-2).reverse()]) {
+        list.append(el("li", criterion.name + " (" + criterion.points + "/20): " + criterion.explanation));
+      }
+      output.replaceChildren(el("h3", "Checklist feedback"), list);
+      status("review-status", "Score and checklist feedback ready. Live AI is unavailable; you can retry AI feedback.");
     } finally {
-      button.disabled = false;
+      if (generation === feedbackGeneration) button.disabled = false;
     }
-  });
+  }
+
+  $("analyze-resume").addEventListener("click", showResumeReview);
+  $("review-ai").addEventListener("click", () => reviewResumeWithAI());
 
   $("load-message").addEventListener("click", () => {
     $("recruiter-message").value = "Hi Jordan, we would like to invite you to an interview for the Data Analyst role. Please reply with your availability next week so we can schedule a call.";
@@ -167,8 +182,9 @@ export function attachCareerSteps({
     status("mail-status", invited ? "Possible interview invitation detected. Verify the sender and any dates in the original message." : "No interview invitation detected. Review the original message if it is ambiguous.");
     onInboxCheck?.(invited);
   });
-  return attachInterview({
+  const stopInterview = attachInterview({
     $, status, el, browserModel, getInterviewContext, refreshInterviewContext, reviewAnswer: reviewInterviewAnswer,
     onFeedback: onInterviewFeedback,
   });
+  return { stopInterview, reviewResumeWithAI };
 }

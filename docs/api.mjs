@@ -1,5 +1,5 @@
-import { checkRemoteListing, companyBoards, fetchListing, fetchListings, fetchRemoteListing, recommendCompanies } from "./listings.mjs?v=3ea1b7ee0216";
-import { jobs, resume, description, walkthrough } from "./data.mjs?v=3ea1b7ee0216";
+import { checkRemoteListing, companyBoards, fetchListing, fetchListings, fetchRemoteListing, recommendCompanies } from "./listings.mjs?v=ea3b2d8c97e3";
+import { jobs, resume, description, walkthrough } from "./data.mjs?v=ea3b2d8c97e3";
 
 const categoriesList = ["skills", "experience", "education", "certifications", "projects"];
 const priorities = { required: 2, preferred: 1 };
@@ -30,12 +30,14 @@ export async function api(request) {
     const place = params.get("place") ?? "";
     const level = params.get("level") ?? "";
     const pay = params.get("pay") ?? "";
+    const work = params.get("work") ?? "";
+    const strict = params.get("strict") === "1";
     if (roles.length > 16 || roles.some(role => role.length > 90 || !/[\p{L}\p{N}]/u.test(role)) ||
       skills.length > 16 || skills.some(skill => skill.length > 50 || !/[a-z0-9]/i.test(skill)) ||
-      place.length > 90 || level.length > 80 || pay.length > 80) {
+      place.length > 90 || level.length > 80 || pay.length > 80 || !["", "Remote", "Hybrid", "In-person"].includes(work)) {
       return Response.json({ error: "Check the job search fields and try again." }, { status: 400 });
     }
-    return Response.json(await recommendCompanies({ roles, place, level, pay, skills, includeRemote: true }));
+    return Response.json(await recommendCompanies({ roles, place, level, pay, skills, includeRemote: true, work, strict }));
   }
   if (path === "/api/remote-listing" && request.method === "GET") {
     const params = new URL(request.url).searchParams;
@@ -68,11 +70,12 @@ export async function api(request) {
     const place = params.get("place") ?? "";
     const level = params.get("level") ?? "";
     const pay = params.get("pay") ?? "";
-    if (!Object.hasOwn(companyBoards, company) || phrase.length > 100 || place.length > 90 || level.length > 80 || pay.length > 80) {
+    const work = params.get("work") ?? "";
+    if (!Object.hasOwn(companyBoards, company) || phrase.length > 100 || place.length > 90 || level.length > 80 || pay.length > 80 || !["", "Remote", "Hybrid", "In-person"].includes(work)) {
       return Response.json({ error: "Choose a supported company and use up to 100 characters." }, { status: 400 });
     }
     try {
-      return Response.json(await fetchListings(company, phrase, fetch, { place, level, pay }));
+      return Response.json(await fetchListings(company, phrase, fetch, { place, level, pay, work }));
     } catch {
       return Response.json({ error: "This company career board is temporarily unavailable. Try another company or use a sample." }, { status: 502 });
     }
