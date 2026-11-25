@@ -38,9 +38,9 @@ test("mouth shapes: open vowels widest, lips together on b, m and p, closed betw
   assert.equal(speechMouthWeight("a", 0.05), speechMouthWeight("a", 0.9));
 });
 
-test("a blink closes and reopens the eyelids through in-between frames", () => {
-  const seen = [0, 30, 60, 110, 170, 220, 260].map(blinkFrame);
-  assert.deepEqual(seen, [1, 1, 2, 3, 2, 1, 0]);
+test("an unhurried blink closes and reopens the eyelids through in-between frames", () => {
+  const seen = [0, 100, 200, 330, 420, 470].map(blinkFrame);
+  assert.deepEqual(seen, [1, 2, 3, 2, 1, 0]);
   assert.ok(Math.max(...seen) === EYE_FRAMES - 1);
 });
 
@@ -52,11 +52,13 @@ test("Maya talks with a moving mouth, then returns to her resting smile", () => 
   const seen = [];
   run(3500, () => seen.push(mouthFrame()));
   const speaking = seen.slice(8);
-  assert.ok(Math.max(...speaking) > 6, "opens wide on vowels");
-  assert.ok(Math.min(...speaking) < 4.2, "closes between sounds");
-  let changes = 0;
-  for (let i = 1; i < speaking.length; i++) if (Math.abs(speaking[i] - speaking[i - 1]) > 0.6) changes++;
-  assert.ok(changes > 20, "keeps moving instead of hovering half open");
+  assert.ok(Math.max(...speaking) > 6, "opens on vowels");
+  assert.ok(Math.min(...speaking) < 5, "closes between syllables");
+  let peaks = 0;
+  for (let i = 1; i < speaking.length - 1; i++) if (speaking[i] > speaking[i - 1] && speaking[i] >= speaking[i + 1] && speaking[i] > 5.2) peaks++;
+  const perSecond = peaks / (speaking.length * 0.033);
+  assert.ok(perSecond >= 1.5 && perSecond <= 5, "moves at syllable pace, not letter pace: " + perSecond.toFixed(1));
+  for (let i = 1; i < speaking.length; i++) assert.ok(Math.abs(speaking[i] - speaking[i - 1]) < 0.9, "no sudden mouth jumps");
   assert.ok(speaking.every(frame => frame >= 0 && frame <= MOUTH_FRAMES - 1));
   motion.endSpeech();
   motion.setMode("waiting");
@@ -84,7 +86,7 @@ test("idle motion blinks, breathes and drifts gently without large jumps", () =>
     assert.ok(Math.abs(get("--maya-head-x")) < 0.6);
     assert.ok(Math.abs(get("--maya-breath") - 1) <= 0.003);
   });
-  assert.ok(blinks >= 5 && blinks <= 16, "blinks every few seconds: " + blinks);
+  assert.ok(blinks >= 3 && blinks <= 8, "blinks every several seconds: " + blinks);
 });
 
 test("while listening Maya tilts her head and nods now and then", () => {
@@ -113,4 +115,23 @@ test("reduced motion keeps Maya still", () => {
   callback(100);
   assert.equal(properties.get("--maya-head-angle"), "0deg");
   assert.equal(properties.get("--maya-mouth-a"), "0");
+});
+
+test("the mouth follows the spoken words: it waits for the voice to reach the next word", () => {
+  const { motion, mouthFrame, run, time } = harness();
+  motion.setActive(true);
+  motion.setMode("speaking");
+  motion.startSpeech("Hello there, how are you today?", 1);
+  motion.speechBoundary(0); // "Hello" starts
+  let opened = 0;
+  run(time() + 450, () => { opened = Math.max(opened, mouthFrame()); });
+  assert.ok(opened > 5, "opens while saying the word");
+  // The voice is slow: no new word for 1.2 seconds, so the mouth closes and waits.
+  const waiting = [];
+  run(time() + 1200, () => waiting.push(mouthFrame()));
+  assert.ok(waiting.slice(-15).every(frame => frame < 3.6), "lips stay together until the next word");
+  motion.speechBoundary(6); // "there" starts
+  let reopened = 0;
+  run(time() + 350, () => { reopened = Math.max(reopened, mouthFrame()); });
+  assert.ok(reopened > 5, "opens again on the next word");
 });
