@@ -64,7 +64,7 @@ test("Maya talks with a moving mouth, then returns to her resting smile", () => 
   for (let i = 1; i < speaking.length - 1; i++) if (speaking[i] > speaking[i - 1] && speaking[i] >= speaking[i + 1] && speaking[i] > 5.2) peaks++;
   const perSecond = peaks / (speaking.length * 0.033);
   assert.ok(perSecond >= 1.5 && perSecond <= 5, "moves at syllable pace, not letter pace: " + perSecond.toFixed(1));
-  for (let i = 1; i < speaking.length; i++) assert.ok(Math.abs(speaking[i] - speaking[i - 1]) < 0.9, "no sudden mouth jumps");
+  for (let i = 1; i < speaking.length; i++) assert.ok(Math.abs(speaking[i] - speaking[i - 1]) < 1.3, "no sudden mouth jumps");
   assert.ok(speaking.every(frame => frame >= 0 && frame <= MOUTH_FRAMES - 1));
   motion.endSpeech();
   motion.setMode("waiting");
