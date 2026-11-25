@@ -1,5 +1,5 @@
-import { resumeProfile, reviewResume } from "./resume-review.mjs?v=63aabc1cd84f";
-import { workflowHelp } from "./workflow.mjs?v=63aabc1cd84f";
+import { resumeProfile, reviewResume } from "./resume-review.mjs?v=ab5fd24bb93f";
+import { workflowHelp } from "./workflow.mjs?v=ab5fd24bb93f";
 
 function chooseTool(question) {
   if (/\b(?:compare|fit|align|qualification|match report)\b/i.test(question) &&
@@ -38,14 +38,14 @@ export function createCareerChatAgent(request) {
       }
       case "jobs": {
         const profile = resumeProfile((context?.resume ?? "") + "\n" + question);
-        const roles = [...new Set([titleFromQuestion(question), context?.role, ...profile.roles].filter(Boolean))].slice(0, 16);
+        const roles = [...new Set([titleFromQuestion(question), context?.role, ...(context?.strict === "1" ? context.scopedRoles ?? [] : profile.roles)].filter(Boolean))].slice(0, 16);
         if (!roles.length) return {
           label: "Job search",
           direct: true,
           summary: "Which job title should I look for? You can also enable resume details to search using your experience.",
           links: [{ text: "Set job preferences", href: "#preferences" }],
         };
-        const params = new URLSearchParams({ place: context?.place ?? "", level: context?.level ?? "", pay: context?.pay ?? "" });
+        const params = new URLSearchParams({ place: context?.place ?? "", level: context?.level ?? "", pay: context?.pay ?? "", work: context?.work ?? "", strict: context?.strict ?? "" });
         roles.forEach(role => params.append("role", role));
         try {
           const { matches, checked } = await request("recommend?" + params);

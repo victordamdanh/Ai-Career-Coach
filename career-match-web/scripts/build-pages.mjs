@@ -8,7 +8,7 @@ await mkdir(output, { recursive: true });
 
 const staticFiles = [
   "web/styles.css", "web/workflow.mjs", "web/agent.mjs", "web/match-evidence.mjs", "web/career-steps.mjs", "web/inbox.mjs", "web/chat.mjs", "web/chat-agent.mjs", "web/resume-review.mjs",
-  "web/job-preferences.mjs", "web/preference-pickers.mjs", "web/preference-catalog.mjs", "web/guided.mjs", "web/interview.mjs", "web/avatar-motion.mjs",
+  "web/job-preferences.mjs", "web/preference-pickers.mjs", "web/preference-catalog.mjs", "web/guided.mjs", "web/interview.mjs", "web/avatar-motion.mjs", "web/automatic-preferences.mjs",
   "src/api.mjs", "src/data.mjs", "src/listings.mjs", "hosting/pages/request.mjs",
 ];
 const assets = Object.fromEntries(await Promise.all(staticFiles.map(async path => [path.split("/").at(-1), await read(path)])));

@@ -9,7 +9,7 @@ AI Career Match is an AI-assisted web application for job seekers. It connects r
 Upload your own resume to start. The first page has two options.
 
 - **Set preferences myself** — choose your job preferences and use Continue to move through each step. You can revisit earlier pages whenever you need to revise your inputs.
-- **Start with AI** — the guided agent reads your resume, infers a target role if needed, reviews it, searches connected live sources, and prepares a shortlist of up to four applications using source-based qualification scores. It opens the highest-scoring draft with sufficient supporting evidence. If the role is unclear or search criteria have been widened, it pauses for your input. Stop the workflow at any time, or edit preferences and run it again.
+- **Start with AI** — a short setup window asks for remote, hybrid or in-person work; willingness to relocate or your current state; department; and years of relevant experience. The agent combines those choices with resume evidence to choose a job title and related roles in your department, fill the location, work arrangement, level, role focus and an editable salary target, then automatically computes all five resume scores and requests AI feedback. It searches connected live sources without widening the selected filters and prepares up to four application drafts using source-based qualification scores. If no suitable openings are found, edit your preferences or try again. The salary target is a planning suggestion, not measured market pay; if the model is unavailable, evidence-based suggestions and labeled checklist feedback remain available.
 
 Both paths use the same application, inbox, interview, chat and saved-profile features. The guided agent prepares applications; you still review and authorize an email send or submit the employer's form yourself.
 
@@ -18,7 +18,7 @@ Both paths use the same application, inbox, interview, chat and saved-profile fe
 | Step | What you can do |
 | --- | --- |
 | 1. Resume | Upload a text-readable PDF, Word DOCX, or TXT file up to 5 MB. Review or edit the extracted text before moving on. |
-| 2. Preferences | Choose from searchable suggestions or type your own job title, location, experience level or employment type, and target salary range in USD. Paste a target job description if you have one. |
+| 2. Preferences | Choose from searchable suggestions or type your own job title, location, work arrangement, experience level or employment type, and target salary range in USD. Paste a target job description if you have one. |
 | 3. Resume Review | Get a score out of 100 for organization, clarity, impact, relevance, and skills. See strengths and gaps, and request additional AI feedback based on your resume. |
 | 4. Find Jobs | Browse live openings grouped by employer, ranked using your preferences and relevant skills. Expand Job details, view original postings, show more companies, and select a job. |
 | 5. Job Match | Compare your resume with the selected posting or a pasted description. Review qualification alignment, supporting excerpts, partial matches, gaps, and improvement suggestions. |
@@ -34,7 +34,7 @@ The PDF reader extracts text from the first 10 pages and the app accepts up to 1
 
 **Find Jobs** checks 19 configured company boards through Greenhouse and also queries the [Jobicy remote jobs feed](https://jobicy.com/). It starts with your title, location, level, and salary preferences and uses relevant resume skills and related titles to rank results. **Search with AI** can suggest additional titles while the initial search runs. **Show more companies** reveals more of the current results.
 
-If there are no openings under the selected filters, the search can widen its location, level, or salary criteria. The results banner identifies any criteria that changed. Openings with unreported or noncomparable pay can appear. The app searches its connected sources, so results depend on the employers covered and each feed’s availability. Confirm current details on the posting before applying.
+Manual searches without a selected work arrangement can widen location, level, or salary criteria when no openings match. Guided AI searches keep the location, work arrangement, department roles, level and salary filters; they do not automatically broaden them. Roles with unknown work arrangement are excluded when an arrangement is selected. Remote postings must indicate the selected state or nationwide U.S. eligibility when the user chooses to stay. The results banner identifies any criteria that changed. Openings with unreported or noncomparable pay can appear. The app searches its connected sources, so results depend on the employers covered and each feed’s availability. Confirm current details on the posting before applying.
 
 **Job Match** evaluates the qualifications in one posting. Quick Match uses source-based rules. **Run live AI** compares selected resume and posting excerpts and checks the model’s source references before scoring. If the model cannot produce usable comparisons, the app can show a labeled source-based result.
 

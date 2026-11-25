@@ -1,14 +1,16 @@
-import { createClassroomRequest } from "./request.mjs?v=63aabc1cd84f";
+import { createClassroomRequest } from "./request.mjs?v=ab5fd24bb93f";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=63aabc1cd84f";
-import { attachCareerSteps } from "./career-steps.mjs?v=63aabc1cd84f";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=63aabc1cd84f";
-import { attachChat } from "./chat.mjs?v=63aabc1cd84f";
-import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=63aabc1cd84f";
-import { applicationKey, createApplicationQueue } from "./guided.mjs?v=63aabc1cd84f";
-import { canNavigateWorkflow } from "./workflow.mjs?v=63aabc1cd84f";
-import { attachPreferencePickers } from "./preference-pickers.mjs?v=63aabc1cd84f";
-import { draftFromEvidence } from "./match-evidence.mjs?v=63aabc1cd84f";
+import { browserModel, createAgent } from "./agent.mjs?v=ab5fd24bb93f";
+import { attachCareerSteps } from "./career-steps.mjs?v=ab5fd24bb93f";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=ab5fd24bb93f";
+import { attachChat } from "./chat.mjs?v=ab5fd24bb93f";
+import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=ab5fd24bb93f";
+import { applicationKey, createApplicationQueue } from "./guided.mjs?v=ab5fd24bb93f";
+import { canNavigateWorkflow } from "./workflow.mjs?v=ab5fd24bb93f";
+import { attachPreferencePickers } from "./preference-pickers.mjs?v=ab5fd24bb93f";
+import { draftFromEvidence } from "./match-evidence.mjs?v=ab5fd24bb93f";
+import { automaticPreferences, departmentChoices, rankDepartmentRoles, stateName } from "./automatic-preferences.mjs?v=ab5fd24bb93f";
+import { states } from "./job-preferences.mjs?v=ab5fd24bb93f";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -40,6 +42,8 @@ let recentApplication;
 let requestedPractice = false;
 let automaticRun;
 let automaticDestination;
+let automaticChoices;
+let automaticRoles = [];
 
 const completed = new Set();
 
@@ -86,7 +90,7 @@ function renderPage({ scroll = false } = {}) {
   }
   if (changed && currentPage === "interview") stopInterview();
   currentPage = next;
-  if (changed && next === "review" && guided) $("analyze-resume").click();
+  if (changed && next === "review" && guided && !resumeReview) $("analyze-resume").click();
   if (changed && next === "jobs" && companyQueryKey() !== lastCompanyQuery) {
     searchResumeCompanies(guided);
   }
@@ -267,17 +271,18 @@ function listingCard(listing) {
   actions.append(compare, applications.selectionControl(listing, () => loadDescription(true)));
   details.append(summary, description);
   const source = listing.provider === "jobicy" ? " · Via Jobicy" : "";
-  item.append(heading, el("p", listing.location + source, "hint"));
+  item.append(heading, el("p", [listing.location, listing.arrangement].filter(Boolean).join(" · ") + source, "hint"));
   item.append(details, actions, matchStatus);
   return item;
 }
 
 function jobSearchFilters() {
-  return { place: $("place").value.trim(), level: $("level").value.trim(), pay: $("pay").value.trim() };
+  return { place: $("place").value.trim(), level: $("level").value.trim(), pay: $("pay").value.trim(),
+    work: $("work").value, strict: guided && automaticChoices ? "1" : "" };
 }
 
 function companyQueryKey() {
-  return JSON.stringify([resume.value, $("role").value, $("place").value, $("level").value, $("pay").value]);
+  return JSON.stringify([resume.value, $("role").value, jobSearchFilters(), automaticChoices?.department, automaticRoles]);
 }
 
 const resumeJobs = $("find-resume-jobs");
@@ -356,9 +361,10 @@ async function searchResumeCompanies(refine, isCurrent = () => true) {
   resumeJobs.disabled = refineJobs.disabled = true;
   status("ai-job-search-status");
   const profile = resumeReview?.profile ?? resumeProfile(text);
-  const rolesFor = additions => [...new Set([title, ...additions, ...profile.roles].filter(Boolean).map(role => role.toLowerCase()))].slice(0, 16);
+  const scoped = guided && automaticChoices;
+  const rolesFor = additions => [...new Set([title, ...(scoped ? automaticRoles : [...additions, ...profile.roles])].filter(Boolean).map(role => role.toLowerCase()))].slice(0, 16);
   const baseRoles = rolesFor([]);
-  const useAI = refine && text.length >= 20;
+  const useAI = refine && text.length >= 20 && !scoped;
   const suggestions = useAI ? suggestJobTitles(text, title) : Promise.resolve([]);
   const filters = jobSearchFilters();
   let firstResults;
@@ -395,6 +401,8 @@ async function searchResumeCompanies(refine, isCurrent = () => true) {
       lines.push("No openings in these sources matched your " + relaxedLabel + " filter" + (relaxed.length > 1 ? "s" : "") +
         (relaxed.includes("location") && filters.place ? " for " + filters.place : "") + ", so these results show " + (widened === "remote or U.S." ? "remote and U.S. openings" : "openings in other locations") + ". Check each posting’s location and requirements.");
     } else if (filters.place) lines.push("Location filter applied for " + filters.place + ".");
+    if (filters.work) lines.push("Work arrangement: " + filters.work + ". Only postings with matching arrangement evidence are shown.");
+    if (filters.strict === "1") lines.push("AI filters are kept as selected; edit preferences to broaden the search.");
     if (!matches.length) lines.push("Try another job title or adjust your level or pay preferences.");
     if (unavailable.length) lines.push("Couldn’t check " + unavailable.join(", ") + ".");
     status("matched-jobs-status", lines.join(" "));
@@ -412,7 +420,7 @@ async function searchResumeCompanies(refine, isCurrent = () => true) {
     } else if (useAI) {
       status("ai-job-search-status", "No additional AI titles. Search used your resume and preferences.");
     } else if (refine) {
-      status("ai-job-search-status", "Upload a resume for AI title suggestions.");
+      status("ai-job-search-status", scoped ? "Search uses the resume-based roles in your selected department." : "Upload a resume for AI title suggestions.");
     }
   } catch (error) {
     if (isCurrent()) status("matched-jobs-status", error.message, true);
@@ -663,6 +671,7 @@ function syncResumePreview() {
   stopAutomaticRun();
   updateAutomaticControls();
   applications.clear();
+  automaticRoles = [];
   resetResumeReview();
   $("extracted").value = resume.value;
   $("extraction").hidden = !resume.value;
@@ -683,8 +692,9 @@ function setResume(text, file) {
 }
 
 for (const field of [$("role"), $("target-description")]) field.addEventListener("input", resetResumeReview);
-for (const id of ["role", "place", "level", "pay", "target-description"]) {
+for (const id of ["role", "place", "work", "level", "pay", "target-description"]) {
   $(id).addEventListener("input", () => {
+    if (id === "role") automaticRoles = [];
     stopAutomaticRun();
     applications.clear();
     $("automatic-draft-note").hidden = true;
@@ -730,11 +740,12 @@ function setGuided(enabled) {
   }
   $("guided-preferences").hidden = !guided;
   $("continue-automatic").hidden = !guided;
+  $("edit-ai-setup").hidden = !guided;
 }
 
 function updateAutomaticControls() {
   const blocked = Boolean(automaticRun) || resume.value.trim().length < 20;
-  $("start-ai").disabled = $("continue-automatic").disabled = blocked;
+  $("start-ai").disabled = $("continue-automatic").disabled = $("edit-ai-setup").disabled = blocked;
   $("stop-automatic").hidden = !automaticRun || automaticRun.cancelled;
 }
 
@@ -752,7 +763,7 @@ function openAutomaticPage(page) {
   goTo(page);
 }
 
-async function startAutomaticRun() {
+async function startAutomaticRun(derive = false) {
   const text = resume.value.trim();
   if (automaticRun || text.length < 20) return;
   if (busy || resumeJobs.disabled) {
@@ -778,11 +789,36 @@ async function startAutomaticRun() {
   progress("Reading your resume and job preferences…");
   try {
     const role = $("role");
-    if (!role.value.trim()) role.value = resumeProfile(text).roles[0] || "";
-    if (!role.value.trim()) {
-      const titles = await suggestJobTitles(text, "", "automatic-run-status");
+    if (derive) {
+      const candidates = rankDepartmentRoles(text, automaticChoices.department);
+      const supported = candidates.filter(candidate => candidate.score > 0);
+      const options = (supported.length ? supported : candidates).slice(0, 6);
+      let modelTitle;
+      try {
+        const generate = await browserModel(percent => progress("Loading AI preferences (" + percent + "%)…"), { fast: true });
+        if (!isCurrent()) return;
+        const raw = await generate("Choose a realistic target role from the supplied candidates. Use only resume evidence, chosen department and reported experience. Return JSON only; do not invent experience.",
+          'Select exactly one listed title: {"role":"title"}.',
+          { resume: resumeExcerpt(text, options.map(option => option.title).join(" "), 1800),
+            years: automaticChoices.years, roles: options.map(option => ({ title: option.title, evidence: option.evidence })) },
+          { maxTokens: 75 });
+        modelTitle = JSON.parse(raw).role;
+        if (!options.some(option => option.title === modelTitle)) modelTitle = undefined;
+      } catch { /* A department-specific evidence ranking is available without the model. */ }
       if (!isCurrent()) return;
-      if (titles.length) role.value = titles[0];
+      const preferences = automaticPreferences(text, automaticChoices, modelTitle);
+      role.value = preferences.role;
+      $("place").value = preferences.place;
+      $("work").value = preferences.work;
+      $("level").value = preferences.level;
+      $("pay").value = preferences.pay;
+      $("target-description").value = preferences.description;
+      automaticRoles = preferences.roles;
+      resetResumeReview();
+      status("guided-preferences", preferences.department + " · " + automaticChoices.years + (automaticChoices.years === 10 ? "+" : "") +
+        " years · " + (automaticChoices.relocation === "stay" ? "Stay in " + preferences.place : "Willing to relocate") +
+        ". " + (modelTitle ? "AI selected" : "Resume evidence suggested") + " " + preferences.role +
+        ". Salary is an editable planning target. Edit filters or rerun with these preferences.");
     }
     if (!role.value.trim()) {
       status("guided-preferences", "Choose a target job title, then select Run AI workflow.");
@@ -790,11 +826,12 @@ async function startAutomaticRun() {
       openAutomaticPage("preferences");
       return;
     }
-    status("guided-preferences", "Edit your job preferences here and run the AI workflow again.");
     savePreferences();
-    $("analyze-resume").click();
-    progress("Resume reviewed. Checking live openings for " + role.value.trim() + "…");
+    openAutomaticPage("review");
+    progress("Reviewing all resume scores and AI feedback; checking live openings for " + role.value.trim() + "…");
+    const feedback = reviewResumeWithAI(isCurrent);
     const results = await searchResumeCompanies(false, isCurrent);
+    await feedback;
     if (!isCurrent()) return;
     if (!results?.checked?.length || !results.matches?.length) {
       showJobs("No openings are ready to compare. Refresh the live sources or edit your preferences.");
@@ -830,11 +867,57 @@ async function startAutomaticRun() {
 document.querySelector('[data-page="upload"] .flow-actions a').addEventListener("click", () => {
   stopAutomaticRun();
   setGuided(false);
+  automaticChoices = undefined;
+  automaticRoles = [];
   $("automatic-run").hidden = true;
   $("automatic-draft-note").hidden = true;
 });
-$("start-ai").addEventListener("click", startAutomaticRun);
-$("continue-automatic").addEventListener("click", startAutomaticRun);
+const setupDialog = $("ai-setup");
+for (const { id, label } of departmentChoices) {
+  const option = el("option", label);
+  option.value = id;
+  $("ai-department").append(option);
+}
+for (const name of Object.values(states)) {
+  const option = el("option");
+  option.value = name;
+  $("ai-state-choices").append(option);
+}
+function syncStateField() {
+  const stay = $("ai-relocation").value === "stay";
+  $("ai-state-field").hidden = !stay;
+  $("ai-state").required = stay;
+  $("ai-state").setCustomValidity("");
+}
+function openAISetup() {
+  if (automaticRun || resume.value.trim().length < 20) return;
+  if (busy || resumeJobs.disabled) {
+    $("automatic-run").hidden = false;
+    status("automatic-run-status", "Wait for the current search or comparison to finish, then choose Start with AI.");
+    return;
+  }
+  syncStateField();
+  setupDialog.showModal();
+}
+$("ai-relocation").addEventListener("change", syncStateField);
+$("ai-state").addEventListener("input", () => $("ai-state").setCustomValidity(""));
+$("cancel-ai-setup").addEventListener("click", () => setupDialog.close());
+$("ai-setup-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const relocation = $("ai-relocation").value;
+  const state = relocation === "stay" ? stateName($("ai-state").value) : "";
+  if (relocation === "stay" && !state) {
+    $("ai-state").setCustomValidity("Enter a U.S. state or two-letter state abbreviation.");
+    $("ai-state").reportValidity();
+    return;
+  }
+  automaticChoices = { work: $("ai-work").value, relocation, state, department: $("ai-department").value, years: Number($("ai-years").value) };
+  setupDialog.close();
+  startAutomaticRun(true);
+});
+$("start-ai").addEventListener("click", openAISetup);
+$("edit-ai-setup").addEventListener("click", openAISetup);
+$("continue-automatic").addEventListener("click", () => automaticChoices ? startAutomaticRun() : openAISetup());
 $("stop-automatic").addEventListener("click", stopAutomaticRun);
 $("file").addEventListener("change", stopAutomaticRun);
 
@@ -857,7 +940,7 @@ function unmatchedPriorities() {
   return lastResult?.rows.filter(row => row.status !== "match").slice(0, 2).map(row => row.requirement) || [];
 }
 
-const stopInterview = attachCareerSteps({
+const { stopInterview, reviewResumeWithAI } = attachCareerSteps({
   $, status, el, browserModel, onResume: setResume,
   onReview(result) { resumeReview = result; },
   onInboxCheck: recordInboxCheck,
@@ -957,6 +1040,9 @@ attachChat({ $, status, el, browserModel, request, json, officialLink, onDeviceO
   place: $("place").value.trim(),
   level: $("level").value,
   pay: $("pay").value,
+  work: $("work").value,
+  strict: guided && automaticChoices ? "1" : "",
+  scopedRoles: guided && automaticChoices ? automaticRoles : undefined,
   match: lastResult,
   review: resumeReview,
 }) });

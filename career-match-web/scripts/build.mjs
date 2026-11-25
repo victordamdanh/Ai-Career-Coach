@@ -16,6 +16,7 @@ const files = {
   "/guided.mjs": ["guided.mjs", "text/javascript; charset=utf-8"],
   "/interview.mjs": ["interview.mjs", "text/javascript; charset=utf-8"],
   "/avatar-motion.mjs": ["avatar-motion.mjs", "text/javascript; charset=utf-8"],
+  "/automatic-preferences.mjs": ["automatic-preferences.mjs", "text/javascript; charset=utf-8"],
   "/career-steps.mjs": ["career-steps.mjs", "text/javascript; charset=utf-8"],
   "/job-preferences.mjs": ["job-preferences.mjs", "text/javascript; charset=utf-8"],
   "/preference-pickers.mjs": ["preference-pickers.mjs", "text/javascript; charset=utf-8"],
