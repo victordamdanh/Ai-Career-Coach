@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
 const output = new URL("dist/pages/", root);
@@ -33,3 +33,5 @@ await Promise.all(Object.entries(assets).map(([name, content]) => writeFile(
   content.replace(/(["'])\.\/([a-z.-]+\.(?:mjs|css))\1/g, (match, quote, asset) =>
     Object.hasOwn(assets, asset) ? quote + "./" + asset + "?v=" + version + quote : match),
 )));
+
+await copyFile(new URL("web/interviewer-bf80c53f7c.png", root), new URL("interviewer-bf80c53f7c.png", output));

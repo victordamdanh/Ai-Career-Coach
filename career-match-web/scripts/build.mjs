@@ -23,6 +23,8 @@ const files = {
 const assets = Object.fromEntries(await Promise.all(Object.entries(files).map(async ([route, [name, type]]) => [
   route, { type, body: await read("web/" + name) },
 ])));
+const portrait = await readFile(new URL("web/interviewer-bf80c53f7c.png", root));
+assets["/interviewer-bf80c53f7c.png"] = { type: "image/png", body: portrait.toString("base64"), base64: true };
 const sources = await Promise.all(["src/data.mjs", "web/job-preferences.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
 const worker = sources.map(source => source.replace(/^import .*?\n/gm, "")).join("\n") + `
 const assets = ${JSON.stringify(assets)};
@@ -35,7 +37,9 @@ export default {
     const asset = Object.hasOwn(assets, pathname) && assets[pathname];
     if (!asset) return new Response("Page unavailable.", { status: 404 });
     if (!["GET", "HEAD"].includes(request.method)) return new Response("Method unavailable.", { status: 405 });
-    return new Response(request.method === "HEAD" ? null : asset.body, { headers: {
+    const body = request.method === "HEAD" ? null : asset.base64
+      ? Uint8Array.from(atob(asset.body), char => char.charCodeAt(0)) : asset.body;
+    return new Response(body, { headers: {
       "content-type": asset.type, "x-content-type-options": "nosniff", "referrer-policy": "no-referrer",
     } });
   },

@@ -10,7 +10,7 @@ Upload a resume and choose **Set preferences myself** or **Start with AI**. Star
 
 Interview Inbox can check Gmail every two minutes while the tab is open. To apply company labels to linked recruiter conversations, choose the labeling option and grant Gmail modify access. Read-only inbox access remains available. The send flow asks for a separate send authorization. Configure the corresponding Gmail scopes on the OAuth app before testing those features. The browser keeps the watch list and OAuth tokens in memory.
 
-Both start paths use the same Interview Practice page. Maya, the illustrated interviewer, reads questions aloud. Answer by voice or text and choose **Pause** to step away or **End interview** to finish early. After up to three answers, the app scores the transcript and gives suggestions. A linked interview notice can open the practice page with that posting’s context.
+Both start paths use the same Interview Practice page. **Start interview** opens a video-call room with Maya’s photorealistic, AI-generated portrait centered and the user’s camera preview in the corner. The app speaks the question, listens to spoken answers, and moves to the next question after a pause. **Pause** releases microphone and camera access, **Resume** restores the call, and **End interview** analyzes completed voice answers automatically. Up to three answers are reviewed and scored using the language model or the transcript checklist when on-device AI is unavailable. A linked interview notice can open the practice page with that posting’s context. Use a browser that supports microphone speech recognition and text-to-speech; recognition may use the browser’s speech service.
 
 ## Start the local app
 
