@@ -8,7 +8,7 @@ await mkdir(output, { recursive: true });
 
 const staticFiles = [
   "web/styles.css", "web/workflow.mjs", "web/agent.mjs", "web/match-evidence.mjs", "web/career-steps.mjs", "web/inbox.mjs", "web/chat.mjs", "web/chat-agent.mjs", "web/resume-review.mjs",
-  "web/job-preferences.mjs", "web/preference-pickers.mjs", "web/preference-catalog.mjs", "web/guided.mjs", "web/interview.mjs",
+  "web/job-preferences.mjs", "web/preference-pickers.mjs", "web/preference-catalog.mjs", "web/guided.mjs", "web/interview.mjs", "web/avatar-motion.mjs",
   "src/api.mjs", "src/data.mjs", "src/listings.mjs", "hosting/pages/request.mjs",
 ];
 const assets = Object.fromEntries(await Promise.all(staticFiles.map(async path => [path.split("/").at(-1), await read(path)])));
@@ -34,4 +34,6 @@ await Promise.all(Object.entries(assets).map(([name, content]) => writeFile(
     Object.hasOwn(assets, asset) ? quote + "./" + asset + "?v=" + version + quote : match),
 )));
 
-await copyFile(new URL("web/interviewer-bf80c53f7c.png", root), new URL("interviewer-bf80c53f7c.png", output));
+for (const portrait of ["interviewer-bf80c53f7c.png", "maya-speaking-a6a2e4d45f.png", "maya-blink-bb1ea41801.png"]) {
+  await copyFile(new URL("web/" + portrait, root), new URL(portrait, output));
+}

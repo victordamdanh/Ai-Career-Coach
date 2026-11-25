@@ -147,8 +147,10 @@ export function createApplicationQueue({ $, el, status, sourceLink, prepare, rev
 
   function markSubmitted(posting, address) {
     const key = applicationKey(posting);
-    tracked.set(key, { company: posting.company, title: posting.title, excerpt: posting.excerpt,
-      priorities: posting.priorities, address: address || tracked.get(key)?.address });
+    tracked.set(key, { id: posting.id, companyId: posting.companyId, provider: posting.provider, url: posting.url,
+      company: posting.company, title: posting.title, excerpt: posting.excerpt,
+      priorities: posting.priorities, level: posting.level || posting.seniority || "",
+      address: address || tracked.get(key)?.address });
     onSubmitted(tracked.size);
   }
 

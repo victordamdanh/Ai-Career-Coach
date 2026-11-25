@@ -1,4 +1,4 @@
-import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget, states } from "./job-preferences.mjs?v=82887e8a0dfc";
+import { matchesAdvertisedPay, matchesJobLevel, matchesJobLocation, preferenceWords, salaryTarget, states } from "./job-preferences.mjs?v=ab1aeb4840d4";
 
 export const companyBoards = {
   anthropic: "Anthropic", airbnb: "Airbnb", cloudflare: "Cloudflare", databricks: "Databricks",
@@ -127,10 +127,10 @@ function meetsPreferences(listing, place, level, targetPay) {
     matchesAdvertisedPay(targetPay, listing.salary);
 }
 
-async function remotePage(params, fetcher) {
+async function remotePage(params, fetcher, fresh = false) {
   const url = remoteEndpoint + "?" + params;
   const cached = remoteCache.get(url);
-  if (cached?.expires > Date.now()) return cached.data;
+  if (!fresh && cached?.expires > Date.now()) return cached.data;
   const response = await fetcher(url, { signal: AbortSignal.timeout(6500) });
   if (!response.ok) throw new Error("The remote job feed is unavailable.");
   const data = await response.json();
@@ -158,23 +158,34 @@ function toRemoteListing(job) {
     provider: "jobicy", salary, description: description.slice(0, 18_000), excerpt: excerpt(description) };
 }
 
-async function remoteListings(roles, fetcher) {
+async function remoteListings(roles, fetcher, fresh = false) {
   const terms = roles.slice(0, 6).map(role => role.trim().match(/\b(?!(?:senior|junior|staff|lead|principal|entry|intern)\b)[a-z]{3,}\b/i)?.[0]?.toLowerCase());
   const tags = [...new Set(terms.filter(Boolean))].slice(0, 2);
   const feeds = await Promise.allSettled((tags.length ? tags : [""]).map(async tag => {
     const params = new URLSearchParams({ count: "100" });
     if (tag) params.set("tag", tag);
-    const first = await remotePage(params, fetcher);
+    const first = await remotePage(params, fetcher, fresh);
     if (!first.nextCursor || typeof first.nextCursor !== "string") return first.jobs;
     params.set("cursor", first.nextCursor);
     try {
-      return first.jobs.concat((await remotePage(params, fetcher)).jobs);
+      return first.jobs.concat((await remotePage(params, fetcher, fresh)).jobs);
     } catch {
       return first.jobs;
     }
   }));
   if (feeds.every(feed => feed.status === "rejected")) throw new Error("The remote job feed is unavailable.");
   return feeds.flatMap(feed => feed.status === "fulfilled" ? feed.value : []).map(toRemoteListing).filter(Boolean);
+}
+
+export async function fetchRemoteListing(id, title, fetcher = fetch) {
+  if (!/^[1-9]\d{0,15}$/.test(id) || !Number.isSafeInteger(Number(id)) ||
+      typeof title !== "string" || !title.trim() || title.length > 300) {
+    throw new Error("Choose a valid listing.");
+  }
+  const postings = await remoteListings([title], fetcher, true);
+  const selected = postings.find(posting => posting.id === Number(id));
+  if (!selected) throw new Error("The original posting is no longer in the current remote feed.");
+  return selected;
 }
 
 export async function checkRemoteListing(id, fetcher = fetch) {

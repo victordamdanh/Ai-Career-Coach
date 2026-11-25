@@ -1,17 +1,53 @@
+import { createAvatarMotion } from "./avatar-motion.mjs?v=ab1aeb4840d4";
+
 const QUESTION_LIMIT = 3;
 const ANSWER_SILENCE_MS = 4200;
 const ANSWER_LIMIT = 3000;
-const fallbackQuestions = [
-  "Tell me about a project or experience that prepared you for this position. What did you contribute?",
-  "Describe a difficult problem you faced, how you handled it, and what you learned.",
-  "How would you approach a new task in this role if the requirements were unclear?",
-];
+const SPEECH_END_GRACE_MS = 2200;
 
-export function attachInterview({ $, status, el, browserModel, getInterviewContext, reviewAnswer, onFeedback }) {
+function shortRequirement(context) {
+  const usable = value => typeof value === "string" && value.trim().length >= 8 && value.trim().length <= 170 &&
+    !/(https?:\/\/|@)/i.test(value) && !/^(requirements|experience|education|responsibilities|qualifications):?$/i.test(value.trim());
+  const priority = (context.matchPriorities || []).find(usable);
+  if (priority) return priority.trim();
+  const lines = (context.job || "").split(/\r?\n|[•]|[.!?]\s+/).map(value => value.trim()).filter(usable);
+  return lines.find(value => /\b(require|years|experience|degree|skill|knowledge|responsible|develop|analy[sz]e|manage|support|build|design|test|proficien)/i.test(value)) || "";
+}
+
+export function practiceQuestion(context = {}, index = 0) {
+  const title = typeof context.role === "string" ? context.role.trim().slice(0, 90) : "";
+  const company = typeof context.company === "string" ? context.company.trim().slice(0, 80) : "";
+  const level = typeof context.level === "string" ? context.level : "";
+  const role = title ? "the " + title + " position" : "this position";
+  const destination = role + (company ? " at " + company : "");
+  const early = /\b(intern(?:ship)?|entry.level|junior|student|new.grad|graduate|trainee|early.career)\b/i.test(level + " " + title);
+  const senior = !early && /\b(senior|principal|lead|director|manager|executive|head of|staff)\b/i.test(level + " " + title);
+  const requirement = shortRequirement(context);
+
+  if (index === 0) {
+    if (early) return "For " + destination + ", tell me about a class project, internship, or other experience that shows how you would succeed in this role.";
+    if (senior) return "For " + destination + ", describe a complex decision you took ownership of. How did your choices affect the wider team's results?";
+    return "Tell me about an experience that prepared you for " + destination + ". What did you contribute and what was the outcome?";
+  }
+  if (index === 1 && requirement) {
+    return "The posting for " + destination + " mentions " + requirement.replace(/[.?!]+$/, "") +
+      ". How would you approach that requirement? Give a specific example.";
+  }
+  if (index === 1) {
+    return early ? "How would you apply the skills you have learned to your first assignment in " + destination + "?" :
+      "Tell me about a difficult challenge relevant to " + destination + ". What options did you consider, and what changed?";
+  }
+  if (senior) return "Imagine you are working in " + destination + " and your team faces competing priorities. How would you decide what to do and measure the impact?";
+  if (early) return "If you were given an unfamiliar assignment in " + destination + ", how would you learn what you needed and deliver accurate work?";
+  return "How would you approach an important task in " + destination + " when the requirements are unclear, and how would you validate the result?";
+}
+
+export function attachInterview({ $, status, el, browserModel, getInterviewContext, refreshInterviewContext, reviewAnswer, onFeedback }) {
   const room = $("interview-room");
   const prompt = $("question");
   const feedback = $("feedback-result");
   const avatar = $("interviewer-avatar");
+  const motion = createAvatarMotion($("maya-motion"));
   const camera = $("camera");
   const start = $("make-question");
   const pause = $("pause-interview");
@@ -46,6 +82,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     const active = phase === "active";
     const paused = phase === "paused";
     const listening = active && stage === "listening";
+    motion.setActive(active && room.open);
     start.disabled = feedbackBusy || active || (paused && room.open);
     start.textContent = paused ? "Resume interview" : phase === "ended" ? "Start a new interview" : "Start interview";
     pause.disabled = !(active || paused);
@@ -69,6 +106,32 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     $("interview-transcript").textContent = transcript.trim() ? "Heard: " + transcript.trim().slice(-180) : "";
   }
 
+  function showJobContext() {
+    $("room-position").textContent = [context.role, context.company, context.level].filter(Boolean).join(" · ");
+    const link = $("room-job-link");
+    const url = context.sourceUrl || "";
+    link.hidden = !/^https:\/\//i.test(url);
+    if (!link.hidden) link.href = url;
+  }
+
+  function refreshJobDetails() {
+    if (!context.source?.id || !refreshInterviewContext) {
+      status("room-source-status", "");
+      return;
+    }
+    const selected = context;
+    const activeContext = () => context === selected && (phase === "active" || phase === "paused");
+    status("room-source-status", "Checking posting…");
+    refreshInterviewContext(selected).then(updated => {
+      if (!activeContext()) return;
+      context = updated;
+      showJobContext();
+      status("room-source-status", "Posting refreshed");
+    }).catch(() => {
+      if (activeContext()) status("room-source-status", "Using saved posting");
+    });
+  }
+
   function closeRoom() {
     if (room.open) room.close();
   }
@@ -84,6 +147,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
 
   function stopSpeaking() {
     ++voiceVersion;
+    motion.endSpeech();
     window.clearTimeout(voiceTimer);
     window.speechSynthesis?.cancel();
   }
@@ -185,6 +249,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
       finish();
       return;
     }
+    motion.acknowledge();
     commitAnswer();
     ask();
   }
@@ -237,6 +302,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     recognition.continuous = true;
     recognition.interimResults = true;
     let failed = false;
+    let speechEnded = false;
     const current = () => phase === "active" && recognizing === recognition;
 
     recognition.onstart = () => {
@@ -255,17 +321,20 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
       update();
       if (stage === "finishing") return;
       window.clearTimeout(silenceTimer);
-      if (transcript.trim()) silenceTimer = window.setTimeout(finishAnswer, ANSWER_SILENCE_MS);
+      if (transcript.trim()) silenceTimer = window.setTimeout(finishAnswer, speechEnded ? SPEECH_END_GRACE_MS : ANSWER_SILENCE_MS);
       if (transcript.length === ANSWER_LIMIT) finishAnswer();
     };
     recognition.onspeechstart = () => {
       if (!current() || stage !== "listening") return;
+      speechEnded = false;
       window.clearTimeout(silenceTimer);
     };
     recognition.onspeechend = () => {
-      if (!current() || stage !== "listening" || !transcript.trim()) return;
+      if (!current() || stage !== "listening") return;
+      speechEnded = true;
+      if (!transcript.trim()) return;
       window.clearTimeout(silenceTimer);
-      silenceTimer = window.setTimeout(finishAnswer, ANSWER_SILENCE_MS);
+      silenceTimer = window.setTimeout(finishAnswer, SPEECH_END_GRACE_MS);
     };
     recognition.onerror = event => {
       if (!current()) return;
@@ -294,7 +363,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     }
   }
 
-  function speakQuestion() {
+  function speakQuestion(acknowledge = false) {
     if (phase !== "active" || !question) return;
     stopListening();
     stopSpeaking();
@@ -311,7 +380,8 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
       return;
     }
     const request = voiceVersion;
-    const utterance = new Utterance(question);
+    const spoken = (acknowledge ? "Thank you. " : "") + question;
+    const utterance = new Utterance(spoken);
     utterance.lang = "en-US";
     utterance.rate = 0.95;
     const voices = speech.getVoices?.() || [];
@@ -321,6 +391,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     const done = () => {
       if (!playbackCurrent()) return;
       window.clearTimeout(voiceTimer);
+      motion.endSpeech();
       beginListening();
     };
     const playbackUnavailable = () => {
@@ -329,7 +400,14 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
       beginListening();
       status("room-status", "Voice playback was interrupted. Select Repeat question to hear it again.", true);
     };
-    utterance.onstart = () => { if (playbackCurrent()) window.clearTimeout(voiceTimer); };
+    utterance.onstart = () => {
+      if (!playbackCurrent()) return;
+      window.clearTimeout(voiceTimer);
+      motion.startSpeech(spoken, utterance.rate);
+    };
+    utterance.onboundary = event => {
+      if (playbackCurrent()) motion.speechBoundary(event.charIndex);
+    };
     utterance.onend = done;
     utterance.onerror = playbackUnavailable;
     voiceTimer = window.setTimeout(playbackUnavailable, 5000);
@@ -350,19 +428,16 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     let generated;
     if (turns.length && modelReady) {
       generated = await modelJson(
-        'Write a concise first-round interview follow-up using the selected job and the candidate’s last answer. Return {"question":"one question"}.',
+        'Write one natural interview follow-up for the supplied company, job title, position responsibilities and experience level. Use the candidate’s preceding answer and job-match requirements. Return {"question":"one question"} without greetings or commentary, and do not invent company facts.',
         { ...context, previous: { ...turns.at(-1), answer: turns.at(-1).answer.slice(0, 1800) } }, 120, current, 12000,
       );
     }
     if (phase !== "active" || version !== current) return;
-    const role = typeof context?.role === "string" ? context.role.trim().slice(0, 90) : "";
     const valid = typeof generated?.question === "string" && generated.question.trim().length > 0 &&
       generated.question.length <= 500 && turns.every(turn => turn.question !== generated.question.trim());
-    question = valid ? generated.question.trim() :
-      !turns.length && role ? "Tell me about an experience that prepared you for the " + role + " role. What did you contribute?" :
-      fallbackQuestions[turns.length];
+    question = valid ? generated.question.trim() : practiceQuestion(context, turns.length);
     prompt.textContent = question;
-    speakQuestion();
+    speakQuestion(turns.length > 0);
   }
 
   function pauseSession() {
@@ -401,7 +476,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     }
     status("practice-status", "Interview complete. Analyzing your spoken answers…");
     const generated = await modelJson(
-      'Evaluate the interview answers together. Return {"scores":{"relevance":0,"specificity":0,"structure":0,"action":0,"result":0},"feedback":["a strength","an improvement","a specific example of how to improve"]}. Use integer scores from 0 to 20.',
+      'Evaluate the interview answers together using the company, position responsibilities, job title and seniority supplied as context. Return {"scores":{"relevance":0,"specificity":0,"structure":0,"action":0,"result":0},"feedback":["a strength","an improvement","a specific example of how to improve"]}. Use integer scores from 0 to 20.',
       { ...context, turns: turns.map(turn => ({ ...turn, answer: turn.answer.slice(0, 1800) })) }, 370, current, 35000,
     );
     if (version !== current) return;
@@ -427,6 +502,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     if (phase === "active" || feedbackBusy) return;
     turns = [];
     context = getInterviewContext();
+    showJobContext();
     cameraEnabled = true;
     phase = "active";
     feedback.replaceChildren();
@@ -434,6 +510,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     room.showModal();
     openCamera();
     ask();
+    refreshJobDetails();
     warmModel();
   });
   pause.addEventListener("click", () => phase === "paused" ? resumeSession() : pauseSession());
@@ -442,7 +519,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     event.preventDefault();
     finish();
   });
-  replay.addEventListener("click", speakQuestion);
+  replay.addEventListener("click", () => speakQuestion());
   mic.addEventListener("click", () => {
     if (phase !== "active" || stage !== "waiting") return;
     stopListening();
