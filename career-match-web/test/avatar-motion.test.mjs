@@ -5,6 +5,7 @@ import { createAvatarMotion, speechMouthWeight } from "../web/avatar-motion.mjs"
 test("speech shapes open for vowels, close for labials and pause between words", () => {
   assert.ok(speechMouthWeight("ab", 0.5) > speechMouthWeight("ab", 1.5));
   assert.equal(speechMouthWeight("a b", 1.4), 0);
+  assert.equal(speechMouthWeight("a", 0.05), speechMouthWeight("a", 0.9));
 });
 
 test("Maya animates only while the room is active and closes her mouth after speaking", () => {
@@ -29,23 +30,42 @@ test("Maya animates only while the room is active and closes her mouth after spe
     callback(time);
   }
   motion.setActive(true);
-  motion.startSpeech("aaaa bbb");
-  nextFrame(45);
-  const open = Number(properties.get("--maya-mouth"));
-  assert.ok(open > 0.3);
-  motion.speechBoundary(5);
-  nextFrame(90);
-  assert.ok(Number(properties.get("--maya-mouth")) < open);
+  motion.startSpeech("aaaaaaaa bbb");
+  let previous = 0;
+  for (const time of [45, 90, 135, 180]) {
+    nextFrame(time);
+    const openness = Number(properties.get("--maya-mouth"));
+    assert.ok(openness > previous && openness - previous <= 0.118);
+    previous = openness;
+  }
+  assert.ok(previous > 0.3);
+  motion.speechBoundary(9);
+  nextFrame(225);
+  assert.ok(Number(properties.get("--maya-mouth")) < previous);
   motion.endSpeech();
-  assert.equal(properties.get("--maya-mouth"), "0");
+  assert.ok(Number(properties.get("--maya-mouth")) > 0);
+  for (let time = 270; time <= 990; time += 45) {
+    nextFrame(time);
+    const openness = Number(properties.get("--maya-mouth"));
+    assert.ok(openness <= previous);
+    previous = openness;
+  }
+  assert.equal(Number(properties.get("--maya-mouth")), 0);
   let blinked = false;
-  for (let time = 123; time < 8700; time += 35) {
+  for (let time = 1025; time < 10000; time += 35) {
     nextFrame(time);
     if (Number(properties.get("--maya-blink")) > 0.9) blinked = true;
+    assert.ok(Math.abs(parseFloat(properties.get("--maya-head-x"))) <= 0.61);
+    assert.ok(Math.abs(parseFloat(properties.get("--maya-eye-x"))) <= 0.27);
+    assert.ok(Math.abs(Number(properties.get("--maya-breath")) - 1) <= 0.0036);
   }
   assert.ok(blinked);
   assert.notEqual(properties.get("--maya-breath"), "1");
+  motion.acknowledge();
+  nextFrame(10300);
+  assert.ok(parseFloat(properties.get("--maya-head-y")) > 0);
   motion.setActive(false);
   assert.equal(frames.size, 0);
   assert.equal(properties.get("--maya-head-angle"), "0deg");
+  assert.equal(properties.get("--maya-mouth"), "0");
 });
