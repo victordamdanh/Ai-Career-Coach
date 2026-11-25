@@ -106,7 +106,7 @@ The original Python and Streamlit coach is available in [`app.py`](https://githu
 
 ## Saved profile, resume and interview history
 
-Select **My saved records** in the header at any time. In the public app, create an email/password account or sign in to the separate [AI Career Match Supabase project](https://supabase.com/dashboard/project/vzvzvprrnisijflaynve). Confirm your email if required. The default Supabase email service may restrict confirmation delivery; contact the project owner for a confirmed demo account if needed.
+Select **My saved records** in the header at any time. In the public app, create an email/password account or sign in to the separate [AI Career Match Supabase project](https://supabase.com/dashboard/project/vzvzvprrnisijflaynve). Confirm your email if required. Confirmation links return to the public app; sign in with the email and password afterwards. If the old link has expired or has already been used, sign in first or select **Resend confirmation email**. The default Supabase email service may restrict confirmation delivery; contact the project owner for a confirmed demo account if needed.
 
 - Give an uploaded resume a name and save its extracted text. Load saved text into the workflow or delete individual versions. Re-upload the original PDF/DOCX for application attachments.
 - After a spoken interview ends, choose **Name and save interview**. Name the record to preserve the role, company, level, linked resume name, original job link, score, recommendations, and transcript. Discard it if you do not want to keep it.

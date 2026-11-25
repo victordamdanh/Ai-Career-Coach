@@ -1,4 +1,4 @@
-import { preferenceWords, states, workArrangements } from "./job-preferences.mjs?v=3b53da1e2490";
+import { preferenceWords, states, workArrangements } from "./job-preferences.mjs?v=32964b1965fb";
 
 const departmentRoles = {
   tech: ["Technology & IT", [

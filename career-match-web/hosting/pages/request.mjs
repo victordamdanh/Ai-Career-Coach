@@ -1,6 +1,6 @@
 import { api } from "./api.mjs";
 import { supabaseConfig } from "./supabase-config.mjs";
-import { createSupabaseStorage } from "./supabase-storage.mjs";
+import { createSupabaseStorage, confirmationNotice } from "./supabase-storage.mjs";
 
 const storage = createSupabaseStorage(supabaseConfig);
 export const getSessionToken = storage.token;
@@ -16,18 +16,31 @@ export function bindSupabaseLogin(refreshAccount) {
   const form = document.getElementById("supabase-signin");
   const message = document.getElementById("account-status");
   const logout = document.getElementById("supabase-signout");
+  const notice = confirmationNotice(window.location.hash);
+  if (notice) {
+    // Strip auth credentials and errors from the URL without adopting an unverified session.
+    window.history.replaceState({ ...window.history.state, careerStep: "profile" }, "", window.location.pathname + window.location.search + "#profile");
+    message.textContent = notice;
+  }
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    const resend = event.submitter?.value === "resend";
+    if (resend && !form.elements.email.reportValidity()) return;
     const buttons = [...form.querySelectorAll("button")];
     buttons.forEach(button => { button.disabled = true; });
     const signup = event.submitter?.value === "signup";
-    message.textContent = signup ? "Creating your account…" : "Signing in…";
+    message.textContent = resend ? "Requesting a new confirmation email…" : signup ? "Creating your account…" : "Signing in…";
     try {
+      if (resend) {
+        await storage.resendConfirmation(form.elements.email.value.trim());
+        message.textContent = "If your account still needs confirmation, check your inbox for the newest email. If you already confirmed your email, sign in instead.";
+        return;
+      }
       const signedIn = await storage.signIn(form.elements.email.value.trim(), form.elements.password.value, signup);
       if (signedIn) {
         await refreshAccount();
         message.textContent = "Signed in. Your saved records are private to your account.";
-      } else message.textContent = "Check your email for the confirmation link, then return here to sign in.";
+      } else message.textContent = "Check your email for the newest confirmation link, then sign in. If your email is already confirmed, sign in directly.";
     } catch (error) {
       message.textContent = error.message;
     } finally {

@@ -1,4 +1,4 @@
-import { historyLink, normalizeHistory } from "./history-records.mjs?v=3b53da1e2490";
+import { historyLink, normalizeHistory } from "./history-records.mjs?v=32964b1965fb";
 
 export function attachProfileHistory({ $, el, status, request, json, officialLink, getResume, loadResume }) {
   const resumeName = $("history-resume-name");

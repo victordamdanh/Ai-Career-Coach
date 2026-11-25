@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { normalizeHistory } from "../web/history-records.mjs";
-import { createSupabaseStorage } from "../web/supabase-storage.mjs";
+import { createSupabaseStorage, careerAuthSite, confirmationNotice } from "../web/supabase-storage.mjs";
 import { attachProfileHistory } from "../web/profile-history.mjs";
 import { account } from "../src/account.mjs";
 import { localDatabase } from "../scripts/sqlite.mjs";
@@ -108,4 +108,27 @@ test("history UI names, saves, displays and deletes both uploaded text and inter
   assert.equal(rows.size, 1);
   await find($("interview-history"), "Delete").events.click();
   assert.equal(rows.size, 0);
+});
+
+test("confirmation callbacks give safe instructions and do not expose tokens", () => {
+  assert.equal(confirmationNotice("#profile"), "");
+  assert.match(confirmationNotice("#error=access_denied&error_code=otp_expired"), /expired or was already used/);
+  const notice = confirmationNotice("#access_token=test-private-token&refresh_token=test-private-refresh&type=signup");
+  assert.match(notice, /Sign in with your email and password/);
+  assert.ok(!notice.includes("test-private"));
+});
+
+test("signup and confirmation resend use the official public redirect", async () => {
+  const requests = [];
+  const storage = createSupabaseStorage({ url: "https://test.example.invalid", key: "sb_publishable_test" }, async (input, options) => {
+    const url = new URL(input);
+    assert.equal(url.searchParams.get("redirect_to"), careerAuthSite);
+    assert.equal(options.headers.Authorization, undefined);
+    requests.push({ path: url.pathname, payload: JSON.parse(options.body) });
+    return Response.json({});
+  });
+  assert.equal(await storage.signIn("demo@example.invalid", "synthetic-password", true), false);
+  await storage.resendConfirmation("demo@example.invalid");
+  assert.equal(requests[0].path, "/auth/v1/signup");
+  assert.deepEqual(requests[1], { path: "/auth/v1/resend", payload: { type: "signup", email: "demo@example.invalid" } });
 });

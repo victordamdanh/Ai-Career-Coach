@@ -1,6 +1,23 @@
-import { historyId, historyText, historyLink, normalizeHistory } from "./history-records.mjs?v=3b53da1e2490";
+import { historyId, historyText, historyLink, normalizeHistory } from "./history-records.mjs?v=32964b1965fb";
 
-export function createSupabaseStorage({ url, key }, fetcher = fetch) {
+export const careerAuthSite = "https://victordamdanh.github.io/Ai-Career-Coach/";
+
+// Confirmation tokens are deliberately not adopted as a session from the URL.
+// Supabase verifies the link first; the candidate then signs in with their password.
+export function confirmationNotice(hash) {
+  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  if (params.has("error") || params.has("error_code")) {
+    return params.get("error_code") === "otp_expired"
+      ? "This email link expired or was already used. Try signing in first. If your email still needs confirmation, resend the confirmation email."
+      : "The email link could not be completed. Try signing in or request a new confirmation email.";
+  }
+  if (params.has("access_token") || params.has("refresh_token")) {
+    return "Your email link returned to Career Match. Sign in with your email and password to open your private saved records.";
+  }
+  return "";
+}
+
+export function createSupabaseStorage({ url, key, redirectTo = careerAuthSite }, fetcher = fetch) {
   let session;
   const result = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
   const accountState = available => ({ available, provider: "supabase" });
@@ -18,18 +35,33 @@ export function createSupabaseStorage({ url, key }, fetcher = fetch) {
         session = undefined;
         throw Object.assign(new Error("Your session expired. Sign in again."), { status: 401 });
       }
-      throw Object.assign(new Error(authenticated ? "Supabase could not complete the request." : "Could not sign in or create the account. Check your email, password, and email confirmation."), { status: authenticated ? 502 : 400 });
+      if (!authenticated) {
+        const detail = await response.json().catch(() => ({}));
+        const code = detail?.code ?? detail?.error_code;
+        const message = code === "email_not_confirmed"
+          ? "Your email is not confirmed yet. Use Resend confirmation email and open the newest link."
+          : response.status === 429 || code === "over_email_send_rate_limit"
+            ? "Too many email or sign-in requests. Wait a little before trying again."
+            : code === "email_address_not_authorized"
+              ? "The project's email service cannot send to this address. Contact the project owner for help."
+              : "Could not complete the request. Check your email and password or try again later.";
+        throw Object.assign(new Error(message), { status: 400 });
+      }
+      throw Object.assign(new Error("Supabase could not complete the request."), { status: 502 });
     }
     return response.status === 204 ? null : response.json().catch(() => null);
   }
   async function signIn(email, password, signup = false) {
-    const data = await call(signup ? "auth/v1/signup" : "auth/v1/token", "POST", { email, password }, signup ? {} : { grant_type: "password" }, undefined, false);
+    const data = await call(signup ? "auth/v1/signup" : "auth/v1/token", "POST", { email, password }, signup ? { redirect_to: redirectTo } : { grant_type: "password" }, undefined, false);
     if (data?.access_token && historyId(data.user?.id)) {
       session = { token: data.access_token, owner: data.user.id };
       return true;
     }
     if (signup) return false;
     throw new Error("Sign-in did not return a valid session.");
+  }
+  async function resendConfirmation(email) {
+    await call("auth/v1/resend", "POST", { type: "signup", email }, { redirect_to: redirectTo }, undefined, false);
   }
   async function signOut() {
     try { if (session) await call("auth/v1/logout", "POST", undefined, { scope: "local" }); }
@@ -87,5 +119,5 @@ export function createSupabaseStorage({ url, key }, fetcher = fetch) {
       return result({ error: error.status ? error.message : "Check the record fields and try again." }, error.status || 400);
     }
   }
-  return { request, signIn, signOut, token: () => session?.token };
+  return { request, signIn, resendConfirmation, signOut, token: () => session?.token };
 }
