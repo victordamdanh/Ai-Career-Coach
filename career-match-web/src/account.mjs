@@ -1,12 +1,14 @@
+import { historyId, normalizeHistory } from "../web/history-records.mjs";
+
 function accountResponse(data, status = 200) {
   return Response.json(data, { status, headers: { "cache-control": "no-store" } });
 }
 
 async function accountInput(request) {
   if (!request.headers.get("content-type")?.startsWith("application/json")) throw new Error("Expected JSON.");
-  if (Number(request.headers.get("content-length")) > 64_000) throw new Error("The record is too long.");
+  if (Number(request.headers.get("content-length")) > 150_000) throw new Error("The record is too long.");
   const input = await request.text();
-  if (input.length > 40_000) throw new Error("The record is too long.");
+  if (input.length > 125_000) throw new Error("The record is too long.");
   const value = JSON.parse(input);
   if (!value || typeof value !== "object") throw new Error("Invalid record.");
   return value;
@@ -20,6 +22,7 @@ function field(value, max, required = false) {
 export async function account(request, env = {}) {
   const url = new URL(request.url);
   const isAccount = url.pathname === "/api/account";
+  const isHistory = url.pathname === "/api/history";
   const isRead = request.method === "GET";
   const owner = env.LOCAL_SQLITE ? "local-workstation" : request.headers.get("oai-authenticated-user-id");
   const unavailable = !env.DB ? "unavailable" : !owner ? "sign-in" : null;
@@ -41,6 +44,7 @@ export async function account(request, env = {}) {
       await DB.batch([
         DB.prepare("DELETE FROM candidate_profiles WHERE owner = ?").bind(owner),
         DB.prepare("DELETE FROM saved_jobs WHERE owner = ?").bind(owner),
+        DB.prepare("DELETE FROM history_records WHERE owner = ?").bind(owner),
       ]);
       return accountResponse({ ok: true });
     }
@@ -55,7 +59,24 @@ export async function account(request, env = {}) {
         .bind(owner, name, email, phone, resume).run();
       return accountResponse({ ok: true });
     }
-    if (!isAccount && request.method === "POST") {
+    if (isHistory && isRead) {
+      const rows = await DB.prepare("SELECT id, kind, name, created_at, payload FROM history_records WHERE owner = ? ORDER BY created_at DESC").bind(owner).all();
+      return accountResponse({ records: rows.results.map(row => ({ id: row.id, kind: row.kind, name: row.name, createdAt: row.created_at, payload: JSON.parse(row.payload) })) });
+    }
+    if (isHistory && request.method === "POST") {
+      const record = normalizeHistory(await accountInput(request));
+      await DB.prepare(`INSERT INTO history_records(owner,id,kind,name,created_at,payload) VALUES(?,?,?,?,?,?)
+        ON CONFLICT(owner,id) DO UPDATE SET kind=excluded.kind,name=excluded.name,created_at=excluded.created_at,payload=excluded.payload`)
+        .bind(owner, record.id, record.kind, record.name, record.createdAt, JSON.stringify(record.payload)).run();
+      return accountResponse({ ok: true });
+    }
+    if (isHistory && request.method === "DELETE") {
+      const input = await accountInput(request);
+      if (!historyId(input.id)) throw new Error("Invalid history ID.");
+      await DB.prepare("DELETE FROM history_records WHERE owner = ? AND id = ?").bind(owner, input.id).run();
+      return accountResponse({ ok: true });
+    }
+    if (!isAccount && !isHistory && request.method === "POST") {
       const input = await accountInput(request);
       const id = field(String(input.id ?? ""), 100, true);
       const company = field(input.company, 100, true);

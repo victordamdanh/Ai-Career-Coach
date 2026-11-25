@@ -1,3 +1,4 @@
+import { attachProfileHistory } from "./profile-history.mjs";
 import { browserModel, createAgent } from "./agent.mjs";
 import { attachCareerSteps } from "./career-steps.mjs";
 import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs";
@@ -73,7 +74,7 @@ function renderPage({ scroll = false } = {}) {
   const fromAutomatic = requested === automaticDestination;
   requestedPractice = false;
   automaticDestination = undefined;
-  const next = fromInvitation || fromAutomatic || canRestore || canNavigateWorkflow(currentPage, requested) ? requested : currentPage ?? "upload";
+  const next = requested === "profile" || fromInvitation || fromAutomatic || canRestore || canNavigateWorkflow(currentPage, requested) ? requested : currentPage ?? "upload";
   if (window.history.state?.careerStep !== next || next !== requested) {
     window.history.replaceState({ ...window.history.state, careerStep: next }, "", next === requested ? window.location.href : "#" + next);
   }
@@ -112,6 +113,7 @@ function renderPage({ scroll = false } = {}) {
     heading.focus({ preventScroll: true });
   }
   if (hash === "method" && next === "match") document.querySelector(".method").open = true;
+  if (changed && next === "profile") loadAccount().catch(error => status("account-status", error.message, true));
   if (changed && next === "match" && target && !lastResult) compareResume(guided);
   if (changed && next === "application") prepareCurrentDraft();
   if (changed && next === "interview") {
@@ -143,6 +145,7 @@ function status(id, message = "", error = false) {
 async function request(path, options) {
   const response = await fetch("./api/" + path, options);
   const value = await response.json();
+  if (response.status === 401 && path !== "account") loadAccount().catch(() => {});
   if (!response.ok) throw Object.assign(new Error(value.error || "The request failed. Try again."), { status: response.status });
   return value;
 }
@@ -688,12 +691,20 @@ $("copy").addEventListener("click", async () => {
   }
 });
 
+const history = attachProfileHistory({ $, el, status, request, json, officialLink,
+  getResume: () => ({ text: resume.value.trim(), filename: resumeFile?.name || "" }),
+  loadResume: record => { if (busy) return false; setResume(record.payload.text); goTo("upload"); return true; },
+});
+let interviewResumeReference;
 async function loadAccount() {
   const data = await request("account");
-  $("signin").hidden = data.available !== "sign-in";
+  $("signin").hidden = data.available !== "sign-in" || data.provider === "supabase";
+  $("supabase-signin").hidden = data.available !== "sign-in" || data.provider !== "supabase";
+  $("supabase-signout").hidden = data.available !== "ready" || data.provider !== "supabase";
   $("account-form").hidden = data.available !== "ready";
   if (data.available === "unavailable") status("account-status", "Storage is unavailable on this deployment.", true);
-  if (data.available !== "ready") return;
+  await history.setAccount(data);
+  if (data.available !== "ready") { $("saved-jobs").replaceChildren(); return; }
   $("full-name").value = data.candidate?.name || "";
   $("email").value = data.candidate?.email || "";
   $("phone").value = data.candidate?.phone || "";
@@ -708,7 +719,7 @@ async function loadAccount() {
     goTo("upload");
   };
   $("saved-jobs").replaceChildren();
-  for (const listing of data.jobs) {
+  for (const listing of data.jobs || []) {
     const item = el("li");
     item.append(officialLink(listing.url, listing.title + " · " + listing.company));
     $("saved-jobs").append(item);
@@ -734,7 +745,7 @@ $("save-job").addEventListener("click", async () => {
   } catch (error) { status("account-status", error.message, true); }
 });
 $("delete-account").addEventListener("click", async () => {
-  if (!window.confirm("Delete your saved profile, resume, and job list?")) return;
+  if (!window.confirm("Delete your saved profile, all resume versions, interview history, and job list?")) return;
   try {
     await request("account", { method: "DELETE" });
     await loadAccount();
@@ -746,6 +757,7 @@ loadAccount().catch(error => status("account-status", error.message, true));
 
 
 function syncResumePreview() {
+  history.syncResume();
   const text = resume.value.trim();
   if (text !== contactResumeText || resumeFile !== contactFile) {
     const parsed = resumeContact(text);
@@ -1070,6 +1082,7 @@ const { stopInterview, reviewResumeWithAI } = attachCareerSteps({
     };
   },
   getInterviewContext: () => {
+    interviewResumeReference = history.resumeReference();
     const applied = recentApplication && (!target || applicationKey(target) === applicationKey(recentApplication))
       ? recentApplication : undefined;
     const selected = interviewFromInbox || applied || target;
@@ -1084,7 +1097,7 @@ const { stopInterview, reviewResumeWithAI } = attachCareerSteps({
       matchPriorities: selected?.priorities ?? unmatchedPriorities(),
     };
   },
-  onInterviewFeedback() { completed.add("interview"); },
+  onInterviewFeedback(record) { completed.add("interview"); history.addInterview(record, interviewResumeReference); },
 });
 syncResumePreview();
 attachPreferencePickers($);

@@ -1,16 +1,17 @@
-import { createClassroomRequest } from "./request.mjs?v=59092eda8f01";
+import { createClassroomRequest, bindSupabaseLogin } from "./request.mjs?v=3b53da1e2490";
 const classroomRequest = createClassroomRequest();
-import { browserModel, createAgent } from "./agent.mjs?v=59092eda8f01";
-import { attachCareerSteps } from "./career-steps.mjs?v=59092eda8f01";
-import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=59092eda8f01";
-import { attachChat } from "./chat.mjs?v=59092eda8f01";
-import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=59092eda8f01";
-import { applicationKey, createApplicationQueue } from "./guided.mjs?v=59092eda8f01";
-import { canNavigateWorkflow } from "./workflow.mjs?v=59092eda8f01";
-import { attachPreferencePickers } from "./preference-pickers.mjs?v=59092eda8f01";
-import { applicationEvidence, draftFromEvidence, resumeContact } from "./match-evidence.mjs?v=59092eda8f01";
-import { automaticPreferences, departmentChoices, rankDepartmentRoles, stateName } from "./automatic-preferences.mjs?v=59092eda8f01";
-import { states } from "./job-preferences.mjs?v=59092eda8f01";
+import { attachProfileHistory } from "./profile-history.mjs?v=3b53da1e2490";
+import { browserModel, createAgent } from "./agent.mjs?v=3b53da1e2490";
+import { attachCareerSteps } from "./career-steps.mjs?v=3b53da1e2490";
+import { resumeExcerpt, resumeLimit, resumeProfile } from "./resume-review.mjs?v=3b53da1e2490";
+import { attachChat } from "./chat.mjs?v=3b53da1e2490";
+import { attachInbox, attachRecruiterEmail } from "./inbox.mjs?v=3b53da1e2490";
+import { applicationKey, createApplicationQueue } from "./guided.mjs?v=3b53da1e2490";
+import { canNavigateWorkflow } from "./workflow.mjs?v=3b53da1e2490";
+import { attachPreferencePickers } from "./preference-pickers.mjs?v=3b53da1e2490";
+import { applicationEvidence, draftFromEvidence, resumeContact } from "./match-evidence.mjs?v=3b53da1e2490";
+import { automaticPreferences, departmentChoices, rankDepartmentRoles, stateName } from "./automatic-preferences.mjs?v=3b53da1e2490";
+import { states } from "./job-preferences.mjs?v=3b53da1e2490";
 
 const $ = id => document.getElementById(id);
 const select = $("samples");
@@ -75,7 +76,7 @@ function renderPage({ scroll = false } = {}) {
   const fromAutomatic = requested === automaticDestination;
   requestedPractice = false;
   automaticDestination = undefined;
-  const next = fromInvitation || fromAutomatic || canRestore || canNavigateWorkflow(currentPage, requested) ? requested : currentPage ?? "upload";
+  const next = requested === "profile" || fromInvitation || fromAutomatic || canRestore || canNavigateWorkflow(currentPage, requested) ? requested : currentPage ?? "upload";
   if (window.history.state?.careerStep !== next || next !== requested) {
     window.history.replaceState({ ...window.history.state, careerStep: next }, "", next === requested ? window.location.href : "#" + next);
   }
@@ -114,6 +115,7 @@ function renderPage({ scroll = false } = {}) {
     heading.focus({ preventScroll: true });
   }
   if (hash === "method" && next === "match") document.querySelector(".method").open = true;
+  if (changed && next === "profile") loadAccount().catch(error => status("account-status", error.message, true));
   if (changed && next === "match" && target && !lastResult) compareResume(guided);
   if (changed && next === "application") prepareCurrentDraft();
   if (changed && next === "interview") {
@@ -145,6 +147,7 @@ function status(id, message = "", error = false) {
 async function request(path, options) {
   const response = await classroomRequest(path, options);
   const value = await response.json();
+  if (response.status === 401 && path !== "account") loadAccount().catch(() => {});
   if (!response.ok) throw Object.assign(new Error(value.error || "The request failed. Try again."), { status: response.status });
   return value;
 }
@@ -690,12 +693,20 @@ $("copy").addEventListener("click", async () => {
   }
 });
 
+const history = attachProfileHistory({ $, el, status, request, json, officialLink,
+  getResume: () => ({ text: resume.value.trim(), filename: resumeFile?.name || "" }),
+  loadResume: record => { if (busy) return false; setResume(record.payload.text); goTo("upload"); return true; },
+});
+let interviewResumeReference;
 async function loadAccount() {
   const data = await request("account");
-  $("signin").hidden = data.available !== "sign-in";
+  $("signin").hidden = data.available !== "sign-in" || data.provider === "supabase";
+  $("supabase-signin").hidden = data.available !== "sign-in" || data.provider !== "supabase";
+  $("supabase-signout").hidden = data.available !== "ready" || data.provider !== "supabase";
   $("account-form").hidden = data.available !== "ready";
   if (data.available === "unavailable") status("account-status", "Storage is unavailable on this deployment.", true);
-  if (data.available !== "ready") return;
+  await history.setAccount(data);
+  if (data.available !== "ready") { $("saved-jobs").replaceChildren(); return; }
   $("full-name").value = data.candidate?.name || "";
   $("email").value = data.candidate?.email || "";
   $("phone").value = data.candidate?.phone || "";
@@ -710,7 +721,7 @@ async function loadAccount() {
     goTo("upload");
   };
   $("saved-jobs").replaceChildren();
-  for (const listing of data.jobs) {
+  for (const listing of data.jobs || []) {
     const item = el("li");
     item.append(officialLink(listing.url, listing.title + " · " + listing.company));
     $("saved-jobs").append(item);
@@ -736,7 +747,7 @@ $("save-job").addEventListener("click", async () => {
   } catch (error) { status("account-status", error.message, true); }
 });
 $("delete-account").addEventListener("click", async () => {
-  if (!window.confirm("Delete your saved profile, resume, and job list?")) return;
+  if (!window.confirm("Delete your saved profile, all resume versions, interview history, and job list?")) return;
   try {
     await request("account", { method: "DELETE" });
     await loadAccount();
@@ -744,10 +755,12 @@ $("delete-account").addEventListener("click", async () => {
     status("account-status", "Your saved records were deleted.");
   } catch (error) { status("account-status", error.message, true); }
 });
+bindSupabaseLogin(loadAccount);
 loadAccount().catch(error => status("account-status", error.message, true));
 
 
 function syncResumePreview() {
+  history.syncResume();
   const text = resume.value.trim();
   if (text !== contactResumeText || resumeFile !== contactFile) {
     const parsed = resumeContact(text);
@@ -1072,6 +1085,7 @@ const { stopInterview, reviewResumeWithAI } = attachCareerSteps({
     };
   },
   getInterviewContext: () => {
+    interviewResumeReference = history.resumeReference();
     const applied = recentApplication && (!target || applicationKey(target) === applicationKey(recentApplication))
       ? recentApplication : undefined;
     const selected = interviewFromInbox || applied || target;
@@ -1086,7 +1100,7 @@ const { stopInterview, reviewResumeWithAI } = attachCareerSteps({
       matchPriorities: selected?.priorities ?? unmatchedPriorities(),
     };
   },
-  onInterviewFeedback() { completed.add("interview"); },
+  onInterviewFeedback(record) { completed.add("interview"); history.addInterview(record, interviewResumeReference); },
 });
 syncResumePreview();
 attachPreferencePickers($);

@@ -1,3 +1,4 @@
+import { attachProfileHistory } from "../web/profile-history.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -66,7 +67,7 @@ test("guided draft opens even for zero matched evidence and preserves edits betw
     if (prompt.includes("Choose up to three distinct excerpt IDs")) return new Promise(resolve => { resolveRefinement = resolve; });
     return "Strength: SQL dashboards. Clarify results.";
   };
-  const bindings = { window, document, fetch, navigator, browserModel, createAgent, attachCareerSteps, resumeExcerpt, resumeLimit, resumeProfile,
+  const bindings = { attachProfileHistory, window, document, fetch, navigator, browserModel, createAgent, attachCareerSteps, resumeExcerpt, resumeLimit, resumeProfile,
     attachChat: noop, attachInbox: noop, attachRecruiterEmail: noop, applicationKey, createApplicationQueue,
     canNavigateWorkflow, attachPreferencePickers: noop, draftFromEvidence, applicationEvidence, resumeContact, automaticPreferences,
     departmentChoices, rankDepartmentRoles, stateName, states };

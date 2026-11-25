@@ -6,6 +6,7 @@ export function localDatabase(path) {
   const database = new DatabaseSync(path);
   if (path !== ":memory:") chmodSync(path, 0o600);
   database.exec(readFileSync(new URL("../drizzle/0000_career_match.sql", import.meta.url), "utf8"));
+  database.exec(readFileSync(new URL("../drizzle/0001_history.sql", import.meta.url), "utf8"));
   return {
     prepare(sql) {
       const statement = database.prepare(sql);

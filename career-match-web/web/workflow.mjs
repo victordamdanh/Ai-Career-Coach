@@ -8,7 +8,7 @@ export const careerFlow = [
   { id: "inbox", title: "Interview Inbox", action: "Check a recruiter reply when you have one." },
   { id: "interview", title: "Interview Practice", action: "Practice a question for the role and review your feedback." },
   { id: "chat", title: "Career Chat", action: "Ask for help with your resume, match, or interview." },
-  { id: "profile", title: "Saved Profile and Jobs", action: "Save the profile or selected job you want to keep." },
+  { id: "profile", title: "Saved Profile and Jobs", action: "Name and save resume versions, interview records, or selected jobs." },
 ];
 
 export function nextInFlow(page) {
