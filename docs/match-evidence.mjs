@@ -1,4 +1,4 @@
-import { resumeProfile } from "./resume-review.mjs?v=d406739e5828";
+import { resumeProfile, resumeExcerpt } from "./resume-review.mjs?v=59092eda8f01";
 
 const categories = ["skills", "experience", "education", "certifications", "projects"];
 const statuses = ["match", "partial", "gap"];
@@ -143,12 +143,47 @@ export function matchActions(rows) {
   ])].slice(0, 5);
 }
 
-export function draftFromEvidence({ title, company, excerpts }, ids) {
+// Only text that actually occurs in the current resume can appear as evidence.
+// If a comparison has no aligned rows, choose relevant resume details without
+// claiming that they satisfy the job's qualifications.
+export function applicationEvidence(result, resume, focus = "") {
+  const source = normalize(resume);
+  const matched = [...new Set((result?.rows ?? []).filter(row => row.status !== "gap").map(row => row.evidence).filter(text =>
+    typeof text === "string" && text.trim() && !/@|https?:\/\/|\b(?:phone|email|address)\s*:/i.test(text) && source.includes(normalize(text))))];
+  if (matched.length) return { excerpts: matched, source: "match" };
+  const terms = keywords(focus);
+  const relevant = sourceExcerpts(resumeExcerpt(resume, focus, 3600), "").resume
+    .filter(({ text }) => !/@|https?:\/\/|\b(?:phone|email|address|linkedin)\s*:/i.test(text) &&
+      (qualification.test(text) || resumeProfile(text).skills.length ||
+        /\b(?:built|created|led|organized|supported|trained|taught|wrote|tested|completed|internship|university|college|student)\b/i.test(text)))
+    .map(({ text }) => ({ text, rank: [...keywords(text)].filter(term => terms.has(term)).length }))
+    .sort((a, b) => b.rank - a.rank);
+  const excerpts = [...new Set(relevant.map(item => item.text))].slice(0, 6);
+  return { excerpts, source: excerpts.length ? "resume" : "none" };
+}
+
+export function resumeContact(resume) {
+  const lines = resume.split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(0, 8);
+  const header = lines.join("\n").slice(0, 1000);
+  const email = header.match(/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/i)?.[0] || "";
+  const phone = header.match(/(?:\+\d{1,3}[ .-]?)?(?:\(\d{3}\)|\b\d{3})[ .-]?\d{3}[ .-]?\d{4}\b/)?.[0] || "";
+  const first = (lines[0] || "").replace(/^name:\s*/i, "").split(/[|•]/)[0].trim();
+  // Do not infer a name from a role title, heading or ambiguous header.
+  const name = (email || phone) && first.length <= 80 && /^[\p{L}][\p{L}.'’-]+(?:\s+[\p{L}][\p{L}.'’-]+){1,4}$/u.test(first) &&
+    !/\b(?:resume|curriculum|vitae|profile|summary|experience|education|skills|student|analyst|engineer|developer|manager|specialist|coordinator|assistant|consultant|teacher|designer|director|scientist|representative|professional|contact)\b/i.test(first)
+    ? first : "";
+  return { name, email, phone };
+}
+
+export function draftFromEvidence({ title, company, excerpts, name = "" }, ids) {
   const selected = Array.isArray(ids) ? [...new Set(ids)].filter(id => Number.isInteger(id) && id > 0 && id <= excerpts.length) : [];
   const evidence = (selected.length ? selected.slice(0, 3).map(id => excerpts[id - 1]) : excerpts.slice(0, 3))
     .map(text => "• " + text).join("\n");
   const role = title ? "the " + title.trim() + " opening" : "your opening";
   const employer = company ? " at " + company.trim() : "";
-  return "Dear hiring team,\n\nI’m applying for " + role + employer + ". Here are examples from my resume:\n\n" + evidence +
-    "\n\nThank you for considering my application.\n\nBest,\n[Your name]";
+  const body = evidence ? " Here are examples from my resume:\n\n" + evidence :
+    " I would welcome the opportunity to discuss my background and interest in the position.";
+  const signature = name.replace(/[\r\n]/g, " ").trim().slice(0, 100) || "[Your name]";
+  return "Dear hiring team,\n\nI’m applying for " + role + employer + "." + body +
+    "\n\nThank you for considering my application.\n\nBest,\n" + signature;
 }

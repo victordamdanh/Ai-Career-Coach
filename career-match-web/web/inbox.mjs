@@ -236,6 +236,7 @@ export async function applicationMessage({ address, subject, draft, file }, boun
     throw new Error("Enter one recruiter email address from the posting.");
   }
   if (!draft.trim() || draft.length > 12000) throw new Error("Review and prepare a cover note before sending.");
+  if (/\[Your name\]/i.test(draft)) throw new Error("Enter your name in the draft before sending.");
   const filename = file?.name.replace(/[^\w .-]+/g, "_").slice(-120);
   const type = resumeTypes[filename?.split(".").at(-1)?.toLowerCase()];
   if (!type || !file.size || file.size > 5 * 1024 * 1024) throw new Error("Upload a PDF, DOCX, or TXT resume up to 5 MB to attach.");
@@ -265,6 +266,10 @@ export function attachRecruiterEmail({ $, status, getApplication, onSent }) {
     const application = getApplication();
     if (!application?.posting || !application.file || !application.draft.trim()) {
       status("draft-status", "Select a job, upload the resume to attach, and prepare a draft first.", true);
+      return;
+    }
+    if (/\[Your name\]/i.test(application.draft)) {
+      status("draft-status", "Enter your name in the draft before sending.", true);
       return;
     }
     const address = $("recruiter-email").value.trim();
