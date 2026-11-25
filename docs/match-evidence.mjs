@@ -1,4 +1,4 @@
-import { resumeProfile, resumeExcerpt } from "./resume-review.mjs?v=3b53da1e2490";
+import { resumeProfile, resumeExcerpt } from "./resume-review.mjs?v=32964b1965fb";
 
 const categories = ["skills", "experience", "education", "certifications", "projects"];
 const statuses = ["match", "partial", "gap"];

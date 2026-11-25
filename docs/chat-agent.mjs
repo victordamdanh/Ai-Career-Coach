@@ -1,5 +1,5 @@
-import { resumeProfile, reviewResume } from "./resume-review.mjs?v=3b53da1e2490";
-import { workflowHelp } from "./workflow.mjs?v=3b53da1e2490";
+import { resumeProfile, reviewResume } from "./resume-review.mjs?v=32964b1965fb";
+import { workflowHelp } from "./workflow.mjs?v=32964b1965fb";
 
 function chooseTool(question) {
   if (/\b(?:compare|fit|align|qualification|match report)\b/i.test(question) &&

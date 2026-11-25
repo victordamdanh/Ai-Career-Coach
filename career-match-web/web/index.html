@@ -300,8 +300,8 @@
         <h2>Sign in to your saved records</h2>
         <p class="hint">Create an account or sign in. Saved records are private to your account.</p>
         <div class="account-fields"><label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="6"></label></div>
-        <div class="buttons"><button type="submit" value="signin">Sign in</button><button class="secondary" type="submit" value="signup">Create account</button></div>
-        <p class="hint">If email confirmation is required, confirm your address before signing in. For a classroom demo account, ask the project owner if you cannot receive the confirmation.</p>
+        <div class="buttons"><button type="submit" value="signin">Sign in</button><button class="secondary" type="submit" value="signup">Create account</button><button class="secondary" type="submit" value="resend" formnovalidate>Resend confirmation email</button></div>
+        <p class="hint">Use the newest confirmation email once. If a link has expired or was already used, try signing in first or resend the confirmation email. For a classroom demo account, ask the project owner if you cannot receive the confirmation.</p>
       </form>
       <button id="supabase-signout" class="secondary" type="button" hidden>Sign out</button>
       <form id="account-form" hidden>
