@@ -1,4 +1,4 @@
-import { levelChoices, preferenceWords, salaryChoices, states } from "./job-preferences.mjs?v=75aed0da0e79";
+import { levelChoices, preferenceWords, salaryChoices, states } from "./job-preferences.mjs?v=a8dcd58c38ef";
 
 const commonTitles = [
   "Data Analyst", "Data Engineer", "Data Scientist", "Business Analyst", "Business Intelligence Analyst", "Software Engineer",
@@ -17,7 +17,7 @@ const commonPlaces = ["Any location", "Remote", "Hybrid", ...Object.values(state
 
 let catalogRequest;
 function loadCatalog() {
-  catalogRequest ??= import("./preference-catalog.mjs?v=75aed0da0e79").then(({ catalog }) => {
+  catalogRequest ??= import("./preference-catalog.mjs?v=a8dcd58c38ef").then(({ catalog }) => {
     const bytes = Uint8Array.from(atob(catalog), character => character.charCodeAt(0));
     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
     return new Response(stream).json();

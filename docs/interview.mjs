@@ -1,4 +1,4 @@
-import { createAvatarMotion } from "./avatar-motion.mjs?v=75aed0da0e79";
+import { createAvatarMotion } from "./avatar-motion.mjs?v=a8dcd58c38ef";
 
 const QUESTION_LIMIT = 3;
 const ANSWER_SILENCE_MS = 4200;

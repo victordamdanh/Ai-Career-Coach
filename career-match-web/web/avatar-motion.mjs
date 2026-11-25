@@ -7,8 +7,8 @@ export const MOUTH_FRAMES = 9; // 0 resting smile, 1-2 into speech, 3 lips toget
 const SPEECH_CLOSED = 3;
 export const EYE_FRAMES = 4; // 0 open, 1-2 eyelid sliding down, 3 closed
 
-// Blink timing in milliseconds: lids close quickly, stay shut briefly, open more slowly.
-const BLINK = [[45, 1], [90, 2], [150, 3], [195, 2], [250, 1]];
+// Blink timing in milliseconds: an unhurried blink, closing, resting shut, then opening.
+const BLINK = [[80, 1], [160, 2], [290, 3], [370, 2], [460, 1]];
 const BLINK_MS = BLINK[BLINK.length - 1][0];
 const NOD_MS = 900;
 
@@ -61,6 +61,8 @@ export function createAvatarMotion(element, environment = window) {
   let anchorAt = 0;
   let charactersPerSecond = 13;
   let lastWord = -1;
+  let heardBoundary = false; // the voice reports when each word starts
+  let wordEnd = 0;
   let wordScale = 1;
   let mouth = 0;
   let talk = 0; // 0 resting smile, 1 speaking face
@@ -70,9 +72,9 @@ export function createAvatarMotion(element, environment = window) {
 
   const set = (name, value) => style?.setProperty(name, value);
   const scheduleBlink = (from, soon = false) => {
-    nextBlink = from + (soon ? 250 : 2600 + random() * 3800);
+    nextBlink = from + (soon ? 650 : 4500 + random() * 4500);
   };
-  const blink = (timestamp, double = random() < 0.15) => {
+  const blink = (timestamp, double = random() < 0.08) => {
     if (timestamp - blinkAt < BLINK_MS + 120) return;
     blinkAt = timestamp;
     scheduleBlink(timestamp, double);
@@ -96,20 +98,45 @@ export function createAvatarMotion(element, environment = window) {
     set("--maya-mouth-mix", "0");
   }
 
+  // Where in the text the voice is now. Commas and sentence ends take extra time,
+  // like a real voice pausing.
+  function textPosition(timestamp) {
+    let left = Math.max(0, timestamp - anchorAt) / 1000;
+    let position = anchor;
+    while (position < speakingText.length) {
+      const character = speakingText[Math.floor(position)];
+      const seconds = 1 / charactersPerSecond + (character === "," || character === ";" ? 0.22 : /[.?!:]/.test(character) ? 0.42 : 0);
+      if (left < seconds) return position + left / seconds;
+      left -= seconds;
+      position = Math.floor(position) + 1;
+    }
+    return position;
+  }
+
   function mouthTarget(timestamp) {
     if (!speakingText) return 0;
-    const position = anchor + Math.max(0, timestamp - anchorAt) * charactersPerSecond / 1000;
+    const position = textPosition(timestamp);
     const index = Math.floor(position);
     if (index >= speakingText.length) return 0;
+    // With word timing from the voice, finish the current word and wait for the next one.
+    if (heardBoundary && index >= wordEnd) return 0;
     // Each word gets its own loudness, so the mouth does not open the same way every time.
     const wordStart = speakingText.lastIndexOf(" ", index) + 1;
     if (wordStart !== lastWord) {
       lastWord = wordStart;
       wordScale = 0.72 + random() * 0.28;
       if (mode === "speaking" && random() < 0.3) nod(timestamp, 0.45 + random() * 0.35);
-      if (/[.?!]/.test(speakingText[wordStart - 2] ?? "") && random() < 0.5) blink(timestamp);
+      if (/[.?!]/.test(speakingText[wordStart - 2] ?? "") && random() < 0.35) blink(timestamp);
     }
-    return Math.min(1, speechMouthWeight(speakingText, position) * wordScale * 1.15);
+    // Average nearby sounds so the mouth follows syllables, not single letters.
+    let total = 0;
+    const start = speakingText.lastIndexOf(" ", index) + 1;
+    const end = heardBoundary ? wordEnd : speakingText.length;
+    for (let offset = -2; offset <= 2; offset++) {
+      const at = position + offset;
+      if (at >= start && at < end) total += speechMouthWeight(speakingText, at) * (offset === 0 ? 2 : 1);
+    }
+    return Math.min(1, total / 6 * wordScale * 1.55);
   }
 
   function draw(timestamp) {
@@ -126,8 +153,8 @@ export function createAvatarMotion(element, environment = window) {
 
     // Mouth: open quickly on a vowel, close a little more slowly.
     const target = mouthTarget(timestamp);
-    mouth = approach(mouth, target, target > mouth ? 38 : 60, step);
-    talk = approach(talk, speakingText ? 1 : 0, speakingText ? 70 : 320, step);
+    mouth = approach(mouth, target, target > mouth ? 110 : 150, step);
+    talk = approach(talk, speakingText ? 1 : 0, speakingText ? 180 : 450, step);
     if (!speakingText && mouth < 0.01) mouth = 0;
     if (!speakingText && talk < 0.01) talk = 0;
     const frame = Math.min(MOUTH_FRAMES - 1, SPEECH_CLOSED * talk + (MOUTH_FRAMES - 1 - SPEECH_CLOSED) * mouth * talk);
@@ -203,8 +230,10 @@ export function createAvatarMotion(element, environment = window) {
       anchor = 0;
       anchorAt = now();
       lastWord = -1;
+      heardBoundary = false;
+      wordEnd = speakingText.length;
       charactersPerSecond = Math.max(9, Math.min(18, 13.5 * rate));
-      if (random() < 0.6) blink(anchorAt);
+      if (random() < 0.35) blink(anchorAt);
     },
 
     speechBoundary(index) {
@@ -217,6 +246,9 @@ export function createAvatarMotion(element, environment = window) {
       }
       anchor = index;
       anchorAt = timestamp;
+      heardBoundary = true;
+      const after = speakingText.slice(index).search(/[\s.,;:?!]/);
+      wordEnd = after < 0 ? speakingText.length : index + after;
     },
 
     endSpeech,
