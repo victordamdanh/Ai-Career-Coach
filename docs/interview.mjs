@@ -1,4 +1,4 @@
-import { createAvatarMotion } from "./avatar-motion.mjs?v=63aabc1cd84f";
+import { createAvatarMotion } from "./avatar-motion.mjs?v=75aed0da0e79";
 
 const QUESTION_LIMIT = 3;
 const ANSWER_SILENCE_MS = 4200;
@@ -97,6 +97,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     $("camera-placeholder").hidden = Boolean(cameraStream);
     $("camera-placeholder").textContent = paused ? "Paused" : cameraPending ? "Starting camera…" : cameraUnavailable ? "Camera unavailable" : "Camera off";
     avatar.dataset.stage = paused ? "paused" : stage;
+    motion.setMode(paused ? "paused" : stage);
     $("room-round").textContent = "Question " + Math.min(turns.length + 1, QUESTION_LIMIT) + " of " + QUESTION_LIMIT;
     $("interviewer-state").textContent = paused ? "Paused" : {
       speaking: "Speaking", listening: "Listening", waiting: "Microphone needed",

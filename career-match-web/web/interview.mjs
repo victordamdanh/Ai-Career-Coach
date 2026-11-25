@@ -97,6 +97,7 @@ export function attachInterview({ $, status, el, browserModel, getInterviewConte
     $("camera-placeholder").hidden = Boolean(cameraStream);
     $("camera-placeholder").textContent = paused ? "Paused" : cameraPending ? "Starting camera…" : cameraUnavailable ? "Camera unavailable" : "Camera off";
     avatar.dataset.stage = paused ? "paused" : stage;
+    motion.setMode(paused ? "paused" : stage);
     $("room-round").textContent = "Question " + Math.min(turns.length + 1, QUESTION_LIMIT) + " of " + QUESTION_LIMIT;
     $("interviewer-state").textContent = paused ? "Paused" : {
       speaking: "Speaking", listening: "Listening", waiting: "Microphone needed",

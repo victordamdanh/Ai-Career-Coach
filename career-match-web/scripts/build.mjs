@@ -24,11 +24,10 @@ const files = {
 const assets = Object.fromEntries(await Promise.all(Object.entries(files).map(async ([route, [name, type]]) => [
   route, { type, body: await read("web/" + name) },
 ])));
-const portrait = await readFile(new URL("web/interviewer-bf80c53f7c.png", root));
-assets["/interviewer-bf80c53f7c.png"] = { type: "image/png", body: portrait.toString("base64"), base64: true };
-// Expression frames stay on the static host so the embedded Worker stays small.
-for (const frame of ["maya-speaking-a6a2e4d45f.png", "maya-blink-bb1ea41801.png"]) {
-  assets["/"].body = assets["/"].body.replace("./" + frame, "https://victordamdanh.github.io/Ai-Career-Coach/" + frame);
+// Maya's layers are small WebP images, so the Worker serves them itself.
+for (const layer of ["maya-room-cba388ece6.webp", "maya-body-5b836358ba.webp", "maya-head-cb0fa2c051.webp", "maya-mouth-1b64935fdd.webp", "maya-eyes-a3a7eca425.webp"]) {
+  const body = await readFile(new URL("web/" + layer, root));
+  assets["/" + layer] = { type: "image/webp", body: body.toString("base64"), base64: true };
 }
 const sources = await Promise.all(["src/data.mjs", "web/job-preferences.mjs", "src/listings.mjs", "src/api.mjs", "src/account.mjs", "src/chat.mjs"].map(read));
 const worker = sources.map(source => source.replace(/^import .*?\n/gm, "")).join("\n") + `
