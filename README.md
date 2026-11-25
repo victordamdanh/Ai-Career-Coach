@@ -26,7 +26,7 @@ Both paths use the same application, inbox, interview, chat and saved-profile fe
 | 7. Interview Inbox | Paste a recruiter message or connect Gmail. Check for possible interview invitations, optionally organize submitted-application conversations by company, and open practice with the linked job context. |
 | 8. Interview Practice | Meet Maya, an AI interviewer, in a simulated video call. Hear questions, answer aloud, and proceed automatically through up to three questions. Pause, resume, or end the call and receive scored transcript feedback. |
 | 9. Career Chat | Ask the career agent to explain results, find current openings, or recommend next steps. Enable Include my resume and job details to use that context. |
-| 10. Saved Profile and Jobs | Keep candidate details, extracted resume text, and selected job snapshots. Persistent storage is available with a backend; the public Pages edition keeps them for the current tab session. |
+| 10. Saved Profile and Jobs | Name, save, reopen and delete resume versions and interview records (job context, scores, transcript and feedback); keep candidate details and selected jobs in the dedicated private Supabase account. |
 
 The PDF reader extracts text from the first 10 pages and the app accepts up to 14,000 characters of resume text. Run OCR on a scanned PDF first, or export it to a text-readable format.
 
@@ -79,8 +79,8 @@ The camera is a local self-view. Maya is an animated portrait rather than a live
 
 | Where you run it | AI and storage |
 | --- | --- |
-| Public GitHub Pages | WebLLM runs live matching, interview feedback and Career Chat on the device. Extracted text, chat history, saved profiles and job snapshots last for the current page session. |
-| Local Node.js | Adds persistent SQLite storage for candidates and job snapshots. Career Chat can use a server-side Gemini API key with a backup model and on-device fallback. |
+| Public GitHub Pages | WebLLM runs live matching, interview feedback and Career Chat on the device. Unsaved extracted text and chat stay in the tab. Signed-in users can explicitly save named resumes, interview records and job snapshots in Supabase. |
+| Local Node.js | Adds persistent SQLite storage for candidates, named resume versions, interview history and job snapshots. Career Chat can use a server-side Gemini API key with a backup model and on-device fallback. |
 | Hosted Worker | Supports persistent storage with Cloudflare D1 and a trusted sign-in gateway. Gemini is optional and runs through the backend for signed-in users. |
 
 Use current desktop Chrome or Edge with WebGPU for on-device AI. The first use downloads a model, so loading time depends on the device and network. The resume checklist, Quick Match, live job discovery, automatic source-based shortlist and pasted-message invitation check work without the language model. Interview speech, camera and Gmail functions depend on browser support and the relevant permissions.
@@ -102,3 +102,14 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000). Set `GEMINI_API_KEY` in the
 ## Earlier Streamlit edition
 
 The original Python and Streamlit coach is available in [`app.py`](https://github.com/victordamdanh/Ai-Career-Coach/blob/main/app.py). It has its own [hosted app](https://ai-career-coach-8jnrwtqi7drqqdrgai2f2d.streamlit.app/) and uses `requirements.txt` and `GEMINI_API_KEY` when run locally.
+
+
+## Saved profile, resume and interview history
+
+Select **My saved records** in the header at any time. In the public app, create an email/password account or sign in to the separate [AI Career Match Supabase project](https://supabase.com/dashboard/project/vzvzvprrnisijflaynve). Confirm your email if required. The default Supabase email service may restrict confirmation delivery; contact the project owner for a confirmed demo account if needed.
+
+- Give an uploaded resume a name and save its extracted text. Load saved text into the workflow or delete individual versions. Re-upload the original PDF/DOCX for application attachments.
+- After a spoken interview ends, choose **Name and save interview**. Name the record to preserve the role, company, level, linked resume name, original job link, score, recommendations, and transcript. Discard it if you do not want to keep it.
+- Sign in again after reloading or on another device to access saved records. Each user's rows are protected by Supabase row-level security. No interview video or audio is retained. Only explicitly saved records are stored in Supabase.
+- [Developer setup and schema](https://github.com/victordamdanh/Ai-Career-Coach/blob/career-match-web-demo/career-match-web/README.md#saved-resume-and-interview-history) · [Separate Python backend](https://github.com/victordamdanh/Ai-Career-Coach/tree/career-match-web-demo/career-match-web/python-backend) · [PostgreSQL schema](https://github.com/victordamdanh/Ai-Career-Coach/blob/career-match-web-demo/career-match-web/supabase/schema.sql).
+
