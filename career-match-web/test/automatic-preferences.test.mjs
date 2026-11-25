@@ -143,9 +143,11 @@ test("Start with AI opens the setup and only starts a strict review/search after
     addEventListener(name, callback) { eventHandlers[name] = callback; }, scrollTo() {} };
   const document = { getElementById: $, querySelector: selector => $(selector), querySelectorAll: () => pages, createElement: node };
   let searchParams;
+  let finishSearch;
+  const searchResponse = new Promise(resolve => { finishSearch = resolve; });
   const fetch = async input => {
     const url = new URL(input, "https://example.invalid/");
-    if (url.pathname.endsWith("/recommend")) { searchParams = url.searchParams; return Response.json({ matches: [], checked: ["Fixture"], unavailable: [], relaxed: [] }); }
+    if (url.pathname.endsWith("/recommend")) { searchParams = url.searchParams; return searchResponse; }
     if (url.pathname.endsWith("/account")) return Response.json({ available: "ready", candidate: null, jobs: [] });
     if (url.pathname.endsWith("/dataset")) return Response.json({ jobs: [] });
     return Response.json({});
@@ -178,7 +180,14 @@ test("Start with AI opens the setup and only starts a strict review/search after
   $("ai-department").value = "tech";
   $("ai-years").value = "2";
   $("ai-setup-form").dispatchEvent({ type: "submit" });
-  for (let i = 0; i < 70 && location.hash !== "#jobs"; i++) await new Promise(resolve => setImmediate(resolve));
+  for (let i = 0; i < 70 && (!searchParams || location.hash !== "#review"); i++) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(location.hash, "#review");
+  location.hash = "#jobs";
+  await new Promise(resolve => setImmediate(resolve));
+  finishSearch(Response.json({ matches: [{ company: "Fixture", total: 1, jobs: [{ id: 1, company: "Fixture", title: "Junior Data Analyst", location: "Phoenix, AZ", arrangement: "Hybrid", url: "https://example.invalid/jobs/1" }] }], checked: ["Fixture"], unavailable: [], relaxed: [] }));
+  for (let i = 0; i < 70 && !$("matched-jobs-status").textContent.includes("1 matching company"); i++) await new Promise(resolve => setImmediate(resolve));
+  assert.match($("matched-jobs-status").textContent, /1 matching company/);
+  assert.doesNotMatch($("automatic-run-status").textContent, /stopped/);
   assert.equal($("ai-setup").open, false);
   assert.equal($("role").value, "Data Analyst");
   assert.equal($("place").value, "Arizona");
