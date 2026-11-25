@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Upload your resume, compare it with open roles, and prepare for applications and interviews.">
 <title>AI Career Match</title>
-<link rel="stylesheet" href="./styles.css?v=fc2f076101bf">
-<script type="module" src="./app.mjs?v=fc2f076101bf"></script>
+<link rel="stylesheet" href="./styles.css?v=333fe799808a">
+<script type="module" src="./app.mjs?v=333fe799808a"></script>
 </head>
 <body>
 <header>
@@ -45,7 +45,7 @@
         <details id="extraction" hidden><summary>Review or edit extracted text</summary><textarea id="extracted" rows="6" maxlength="14000" aria-label="Extracted resume text"></textarea></details>
         <p id="upload-status" class="hint" role="status"></p>
         <div class="flow-actions"><a class="button" href="#preferences">Set preferences myself</a><button type="button" id="start-ai" disabled>Start with AI</button></div>
-        <p class="hint">Upload a resume to enable Start with AI. It reviews your resume, searches live openings, and prepares drafts for your approval.</p>
+        <p class="hint">Upload a resume, choose four quick filters, and Start with AI will set your preferences, review your resume, search live openings, and prepare drafts.</p>
         <p id="edition-note" class="hint">Public classroom demo. Resume extraction runs in your browser. Profiles and saved jobs are kept only while this page is open.</p>
       </div>
     </section>
@@ -65,19 +65,39 @@
     </section>
   </section>
 
+  <dialog id="ai-setup" class="ai-setup" aria-labelledby="ai-setup-title">
+    <form id="ai-setup-form">
+      <div class="ai-setup-heading"><h2 id="ai-setup-title">Set your AI search filters</h2><p class="hint">Four choices help find roles that fit your resume and goals.</p></div>
+      <div class="ai-setup-fields">
+        <label for="ai-work">Work arrangement</label>
+        <select id="ai-work" required><option value="" selected disabled>Choose how you want to work</option><option>Remote</option><option>Hybrid</option><option>In-person</option></select>
+        <label for="ai-relocation">Location preference</label>
+        <select id="ai-relocation" required><option value="" selected disabled>Choose whether you can relocate</option><option value="relocate">Willing to relocate (any location)</option><option value="stay">Stay in my current state</option></select>
+        <div id="ai-state-field" hidden><label for="ai-state">Current state</label><input id="ai-state" list="ai-state-choices" placeholder="Type or select your state" maxlength="60" autocomplete="off"><datalist id="ai-state-choices"></datalist></div>
+        <label for="ai-department">Department or field</label>
+        <select id="ai-department" required><option value="" selected disabled>Choose your field</option></select>
+        <label for="ai-years">Years of relevant experience</label>
+        <select id="ai-years" required><option value="" selected disabled>Choose your experience</option><option value="0">No professional experience</option><option value="0.5">Less than 1 year</option><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option><option value="4">4 years</option><option value="5">5 years</option><option value="6">6 years</option><option value="7">7 years</option><option value="8">8 years</option><option value="9">9 years</option><option value="10">10+ years</option></select>
+        <p class="hint">AI will suggest a job title, level, role focus and editable salary target. It won't widen your selected work or location filters automatically.</p>
+      </div>
+      <div class="ai-setup-actions"><button id="cancel-ai-setup" type="button" class="secondary">Cancel</button><button type="submit">Start AI workflow</button></div>
+    </form>
+  </dialog>
+
   <section data-page="preferences" hidden aria-labelledby="preferences-title">
     <div class="page-heading"><h1 id="preferences-title" tabindex="-1">Job preferences</h1><p>Tell us what role you’re looking for or add a description for a specific opening.</p></div>
     <div class="flow-actions"><a class="button" href="#review">Continue to Resume Review</a></div>
     <div class="panel"><div class="section preferences-fields">
       <p class="hint full-width">Choose a suggestion or type your own value.</p>
       <p class="hint full-width" id="guided-preferences" role="status" hidden></p>
-      <div class="buttons full-width"><button id="continue-automatic" type="button" hidden>Run AI workflow</button></div>
+      <div class="buttons full-width"><button id="continue-automatic" type="button" hidden>Run AI workflow</button><button id="edit-ai-setup" type="button" class="secondary" hidden>Edit AI filters</button></div>
       <div><label for="role">Job title</label><div class="preference-picker"><input id="role" maxlength="90" placeholder="e.g. Data Analyst" autocomplete="off"></div></div>
       <div><label for="place">Location</label><div class="preference-picker"><input id="place" maxlength="90" placeholder="e.g. Phoenix, AZ or Remote" autocomplete="off"></div></div>
+      <div><label for="work">Work arrangement</label><select id="work"><option value="">Any arrangement</option><option>Remote</option><option>Hybrid</option><option>In-person</option></select></div>
       <div><label for="level">Level or employment type</label><div class="preference-picker"><input id="level" maxlength="80" placeholder="e.g. Entry level or Full-time" autocomplete="off"></div></div>
       <div><label for="pay">Target salary range (USD)</label><div class="preference-picker"><input id="pay" maxlength="80" placeholder="e.g. $80,000–$110,000" autocomplete="off"></div></div>
       <label class="full-width">Target job description<textarea id="target-description" maxlength="3000" placeholder="Optional qualifications to compare"></textarea></label>
-      <p class="hint full-width">Openings without published salary information can still appear.</p>
+      <p class="hint full-width">The AI salary target is a suggested planning range, not measured market pay. Openings without published salary information can still appear. The generated role focus is not a real employer posting.</p>
       <details class="full-width"><summary>Suggestion sources</summary><p class="hint">Reported job titles come from the U.S. Department of Labor’s <a href="https://www.onetcenter.org/database.html" target="_blank" rel="noopener noreferrer">O*NET 31.0 Database</a> under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>, with titles trimmed, deduplicated, and supplemented. U.S. place names come from the <a href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.2025.html" target="_blank" rel="noopener noreferrer">2025 Census Gazetteer</a>.</p></details>
     </div></div>
   </section>
@@ -281,3 +301,4 @@
 </main>
 </body>
 </html>
+
