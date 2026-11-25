@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { blinkFrame, createAvatarMotion, EYE_FRAMES, MOUTH_FRAMES, speechMouthWeight } from "../web/avatar-motion.mjs";
+import { blinkFrame, createAvatarMotion, EYE_FRAMES, MOUTH_FRAMES, wordOpenness } from "../web/avatar-motion.mjs";
 
 function harness() {
   const properties = new Map();
@@ -30,12 +30,13 @@ function harness() {
   return { motion, properties, frames, get, mouthFrame, run, time: () => timestamp };
 }
 
-test("mouth shapes: open vowels widest, lips together on b, m and p, closed between words", () => {
-  assert.ok(speechMouthWeight("a", 0) > speechMouthWeight("e", 0));
-  assert.ok(speechMouthWeight("e", 0) > speechMouthWeight("u", 0));
-  assert.equal(speechMouthWeight("m", 0), 0);
-  assert.equal(speechMouthWeight("a b", 1.4), 0);
-  assert.equal(speechMouthWeight("a", 0.05), speechMouthWeight("a", 0.9));
+test("stressed words open the mouth wider than small words, as in real speech", () => {
+  assert.ok(wordOpenness("problem") > wordOpenness("time"));
+  assert.ok(wordOpenness("time") > wordOpenness("a"));
+  assert.ok(wordOpenness("difficult") > wordOpenness("to"));
+  assert.ok(wordOpenness("the") <= 0.25 && wordOpenness("at") <= 0.25);
+  assert.ok(wordOpenness("absolutely") <= 1);
+  assert.equal(wordOpenness(","), 0);
 });
 
 test("an unhurried blink closes and reopens the eyelids through in-between frames", () => {
@@ -63,7 +64,7 @@ test("Maya talks with a moving mouth, then returns to her resting smile", () => 
   let peaks = 0;
   for (let i = 1; i < speaking.length - 1; i++) if (speaking[i] > speaking[i - 1] && speaking[i] >= speaking[i + 1] && speaking[i] > 5.2) peaks++;
   const perSecond = peaks / (speaking.length * 0.033);
-  assert.ok(perSecond >= 1.5 && perSecond <= 5, "moves at syllable pace, not letter pace: " + perSecond.toFixed(1));
+  assert.ok(perSecond >= 1.2 && perSecond <= 3.2, "about two clear openings per second, like our recordings: " + perSecond.toFixed(1));
   for (let i = 1; i < speaking.length; i++) assert.ok(Math.abs(speaking[i] - speaking[i - 1]) < 1.3, "no sudden mouth jumps");
   assert.ok(speaking.every(frame => frame >= 0 && frame <= MOUTH_FRAMES - 1));
   motion.endSpeech();
